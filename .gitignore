@@ -23,8 +23,3 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# env files
-.env
-frontend/.env
-frontend/.env.production
-backend/.env
