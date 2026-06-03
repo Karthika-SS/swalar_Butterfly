@@ -1,0 +1,25 @@
+### Admin Login
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "karthikasenthil2004@gmail.com",
+  "password": "admin123"
+}
+
+
+### Get Products
+GET http://localhost:5000/api/products
+
+### Create Product
+POST http://localhost:5000/api/products/admin/create
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJrYXJ0aGlrYXNlbnRoaWwyMDA0QGdtYWlsLmNvbSIsImlhdCI6MTc3NjA1NTUzNSwiZXhwIjoxNzc2NjYwMzM1fQ.GisieoUc1eC_okkqjbm6MStDZ80GkKj3KFDGIBfOXos
+Content-Type: application/json
+
+{
+  "name": "Test Dress",
+  "description": "Nice dress",
+  "price": 999,
+  "stock": 10,
+  "category_id": 1
+}
