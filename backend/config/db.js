@@ -42,15 +42,16 @@ async function initDB() {
 
     // ── categories ──────────────────────────────────────────────────────────
     await conn.query(`
-  CREATE TABLE IF NOT EXISTS categories (
-    id               INT AUTO_INCREMENT PRIMARY KEY,
-    name             VARCHAR(100) NOT NULL UNIQUE,
-    description      TEXT         DEFAULT NULL,
-    image_url        VARCHAR(500) DEFAULT NULL,
-    image_public_id  VARCHAR(255) DEFAULT NULL,
-    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
-  )
-`);
+      CREATE TABLE IF NOT EXISTS categories (
+        id               INT AUTO_INCREMENT PRIMARY KEY,
+        name             VARCHAR(100) NOT NULL UNIQUE,
+        description      TEXT         DEFAULT NULL,
+        image_url        VARCHAR(500) DEFAULT NULL,
+        image_public_id  VARCHAR(255) DEFAULT NULL,
+        created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // ── products ────────────────────────────────────────────────────────────
     await conn.query(`
       CREATE TABLE IF NOT EXISTS products (
@@ -58,6 +59,7 @@ async function initDB() {
         name             VARCHAR(255)  NOT NULL,
         description      TEXT,
         price            DECIMAL(10,2) NOT NULL,
+        original_price   DECIMAL(10,2) DEFAULT NULL,
         stock            INT           DEFAULT 0,
         category_id      INT,
         image_url        VARCHAR(500),
@@ -128,39 +130,75 @@ async function initDB() {
       )
     `);
 
-    // ── Indexes (try/catch because CREATE INDEX has no IF NOT EXISTS on older MySQL)
+    // ── reviews ─────────────────────────────────────────────────────────────
+    // customer_phone identifies the buyer (no login system)
+    // order_id links to the delivered order for verification
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS reviews (
+        id             INT AUTO_INCREMENT PRIMARY KEY,
+        product_id     INT          NOT NULL,
+        order_id       INT          NOT NULL,
+        customer_phone VARCHAR(20)  NOT NULL,
+        customer_name  VARCHAR(255) NOT NULL DEFAULT 'Anonymous',
+        rating         TINYINT      NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        title          VARCHAR(255) DEFAULT '',
+        body           TEXT         DEFAULT '',
+        created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_review (customer_phone, product_id),
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+        FOREIGN KEY (order_id)   REFERENCES orders(id)   ON DELETE CASCADE
+      )
+    `);
+
+    // ── Migrations: safe ALTER for existing databases ────────────────────────
+    for (const sql of [
+      'ALTER TABLE products ADD COLUMN IF NOT EXISTS original_price DECIMAL(10,2) DEFAULT NULL',
+      'ALTER TABLE products ADD COLUMN IF NOT EXISTS sizes VARCHAR(500) DEFAULT NULL',
+      'ALTER TABLE order_items ADD COLUMN IF NOT EXISTS size VARCHAR(20) DEFAULT NULL',
+      'ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_order_id VARCHAR(100) NULL',
+      'ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_payment_id VARCHAR(100) NULL',
+      'ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_signature VARCHAR(256) NULL',
+      'ALTER TABLE categories ADD COLUMN IF NOT EXISTS description TEXT DEFAULT NULL',
+      'ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_url VARCHAR(500) DEFAULT NULL',
+      'ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_public_id VARCHAR(255) DEFAULT NULL',
+    ]) {
+      try { await conn.query(sql); } catch (_) { /* column already exists — skip */ }
+    }
+
+    // ── Indexes ──────────────────────────────────────────────────────────────
     for (const sql of [
       'CREATE INDEX idx_orders_rp_order_id ON orders (razorpay_order_id)',
       'CREATE INDEX idx_pss_product ON product_size_stock (product_id)',
+      'CREATE INDEX idx_reviews_product ON reviews (product_id)',
+      'CREATE INDEX idx_reviews_phone ON reviews (customer_phone)',
     ]) {
       try { await conn.query(sql); } catch (_) { /* already exists — skip */ }
     }
 
-    // ── Seed: settings ──────────────────────────────────────────────────────
-    // ── Seed: settings ──────────────────────────────────────────────────────
-const seedSettings = [
-  ['shop_name',          "Women's Choice"],
-  ['shop_phone',         '7010354442'],
-  ['shop_tagline',       'Style that speaks to you'],
-  ['upi_id',             ''],
-  ['qr_image_url',       ''],
-  ['qr_image_public_id', ''],
-];
-for (const [key, value] of seedSettings) {
-  await conn.query(
-    'INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_key = setting_key',
-    [key, value]
-  );
-}
+    // ── Seed: settings ───────────────────────────────────────────────────────
+    const seedSettings = [
+      ['shop_name',          "Women's Choice"],
+      ['shop_phone',         '7010354442'],
+      ['shop_tagline',       'Style that speaks to you'],
+      ['upi_id',             ''],
+      ['qr_image_url',       ''],
+      ['qr_image_public_id', ''],
+    ];
+    for (const [key, value] of seedSettings) {
+      await conn.query(
+        'INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_key = setting_key',
+        [key, value]
+      );
+    }
 
-    // ── Seed: categories ────────────────────────────────────────────────────
+    // ── Seed: categories ─────────────────────────────────────────────────────
     await conn.query(`
       INSERT INTO categories (name) VALUES
         ('Kurtis'), ('Sarees'), ('Sets'), ('Tops'), ('Bottoms')
       ON DUPLICATE KEY UPDATE name = name
     `);
 
-    // ── Seed: default admin (password: admin123) ─────────────────────────────
+    // ── Seed: default admin (password: admin123) ──────────────────────────────
     await conn.query(`
       INSERT INTO admins (email, password) VALUES
         ('admin@shop.com', '$2a$10$kokih.oO2lhA0G0Usb.tVeKEfU0iLYzYRZgYpdWYREEGZXYnQvX8C')
