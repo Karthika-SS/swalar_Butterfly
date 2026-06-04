@@ -1054,7 +1054,7 @@ const Home = () => {
         <div className="wc-insta-block">
           <p>Follow us for daily new arrivals & exclusive offers 💕</p>
           <a
-            href="https://www.instagram.com/_womens_choice._/"
+            href="https://www.instagram.com/salwar_butterfly/"
             target="_blank"
             rel="noopener noreferrer"
             className="wc-insta-handle"

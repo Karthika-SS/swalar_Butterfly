@@ -25,6 +25,8 @@ const styles = `
 .product-cell-name { font-weight: 600; color: var(--primary); }
 .product-cell-id { font-size: 0.75rem; color: var(--text-muted); }
 .price-cell { font-weight: 700; color: var(--primary); }
+.price-original-cell { font-size: 0.78rem; color: var(--text-muted); text-decoration: line-through; }
+.sale-tag { display: inline-block; background: #f8c4aa; color: #7a3a1a; font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-left: 6px; vertical-align: middle; }
 .stock-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; padding: 4px 10px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; }
 .stock-badge.ok { background: #d4edda; color: #155724; }
 .stock-badge.low { background: #fff3cd; color: #856404; }
@@ -63,17 +65,32 @@ const styles = `
 .confirm-box p { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 28px; }
 .confirm-actions { display: flex; gap: 12px; justify-content: center; }
 
+/* Offer price box */
+.offer-price-box {
+  background: #fff8f0; border: 1.5px dashed #f8c4aa;
+  border-radius: 8px; padding: 14px 16px; margin-top: 4px;
+}
+.offer-price-box .offer-price-hint {
+  font-size: 0.74rem; color: #7a3a1a; margin-top: 6px;
+  display: flex; align-items: center; gap: 4px;
+}
+.offer-price-preview {
+  display: flex; align-items: center; gap: 8px; margin-top: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+}
+.offer-price-preview .op-original { text-decoration: line-through; color: var(--text-muted); }
+.offer-price-preview .op-sale { color: #c0392b; font-weight: 700; }
+.offer-price-preview .op-badge { background: #f8c4aa; color: #7a3a1a; font-size: 0.68rem; font-weight: 600; padding: 2px 10px; border-radius: 20px; }
+
 /* Size + stock grid */
 .size-stock-grid {
   display: flex; flex-direction: column; gap: 8px; margin-top: 10px;
 }
-
 .size-stock-row {
   display: flex; align-items: center; gap: 12px;
   background: #fafafa; border: 1px solid var(--border);
   border-radius: 8px; padding: 10px 14px;
 }
-
 .size-stock-toggle {
   min-width: 52px; height: 34px; padding: 0 12px;
   border: 1.5px solid var(--border); border-radius: 20px; background: white;
@@ -81,10 +98,8 @@ const styles = `
   color: var(--text-muted); cursor: pointer; transition: all 0.15s;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-
 .size-stock-toggle:hover { border-color: #e91e8c; color: #e91e8c; }
 .size-stock-toggle.active { background: #e91e8c; border-color: #e91e8c; color: white; font-weight: 700; }
-
 .size-stock-input-wrap { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .size-stock-input-wrap label { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
 .size-stock-input {
@@ -95,7 +110,6 @@ const styles = `
 .size-stock-input:focus { border-color: #e91e8c; }
 .size-stock-oos { font-family: 'DM Sans', sans-serif; font-size: 0.7rem; color: #721c24; background: #f8d7da; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
 .size-stock-hint { font-size: 0.74rem; color: var(--text-muted); margin-top: 6px; }
-
 .sizes-cell { display: flex; flex-wrap: wrap; gap: 4px; }
 .size-chip { display: inline-block; padding: 2px 8px; background: #fce4f3; border-radius: 10px; font-size: 0.7rem; font-weight: 600; color: #e91e8c; }
 .size-chip.oos { background: #f8d7da; color: #721c24; text-decoration: line-through; }
@@ -106,14 +120,8 @@ const styles = `
 const ALL_SIZES = ['2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
 
 const emptyForm = {
-  name: '', description: '', price: '', category_id: '', is_active: true,
-  // size_stock: [{size, stock, active}]
+  name: '', description: '', price: '', original_price: '', category_id: '', is_active: true,
   size_stock: ALL_SIZES.map(s => ({ size: s, stock: 0, active: false })),
-};
-
-const parseSizes = (sizesStr) => {
-  if (!sizesStr) return [];
-  return sizesStr.split(',').map(s => s.trim()).filter(Boolean);
 };
 
 const ProductManagement = () => {
@@ -158,6 +166,7 @@ const ProductManagement = () => {
       name: product.name,
       description: product.description || '',
       price: product.price,
+      original_price: product.original_price || '',   // ← load existing original price
       category_id: product.category_id || '',
       is_active: product.is_active,
       size_stock: sizeStockForm,
@@ -192,6 +201,14 @@ const ProductManagement = () => {
     setImagePreview(URL.createObjectURL(file));
   };
 
+  // Derived: is there a valid discount to preview?
+  const parsedPrice = parseFloat(form.price) || 0;
+  const parsedOriginal = parseFloat(form.original_price) || 0;
+  const hasValidDiscount = parsedOriginal > parsedPrice && parsedPrice > 0;
+  const discountPct = hasValidDiscount
+    ? Math.round(((parsedOriginal - parsedPrice) / parsedOriginal) * 100)
+    : 0;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -200,15 +217,15 @@ const ProductManagement = () => {
       formData.append('name', form.name);
       formData.append('description', form.description);
       formData.append('price', form.price);
+      // Only send original_price if it's actually greater than price
+      formData.append('original_price', hasValidDiscount ? form.original_price : '');
       formData.append('category_id', form.category_id);
       formData.append('is_active', form.is_active);
 
-      // Build active sizes string and size_stock JSON
       const activeSizeStock = form.size_stock.filter(s => s.active);
       const sizesStr = activeSizeStock.map(s => s.size).join(',');
       formData.append('sizes', sizesStr);
 
-      // Total stock = sum of all active size stocks
       const totalStock = activeSizeStock.reduce((sum, s) => sum + (s.stock || 0), 0);
       formData.append('stock', totalStock);
 
@@ -288,48 +305,62 @@ const ProductManagement = () => {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr><td colSpan={6} className="empty-row">No products found</td></tr>
-                ) : filtered.map(product => (
-                  <tr key={product.id}>
-                    <td>
-                      <div className="product-cell">
-                        <div className="product-thumb">
-                          {product.image_url ? <img src={product.image_url} alt={product.name} /> : <div className="no-thumb" />}
+                ) : filtered.map(product => {
+                  const hasDeal = product.original_price &&
+                    parseFloat(product.original_price) > parseFloat(product.price);
+                  return (
+                    <tr key={product.id}>
+                      <td>
+                        <div className="product-cell">
+                          <div className="product-thumb">
+                            {product.image_url ? <img src={product.image_url} alt={product.name} /> : <div className="no-thumb" />}
+                          </div>
+                          <div>
+                            <div className="product-cell-name">{product.name}</div>
+                            <div className="product-cell-id">ID: {product.id}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="product-cell-name">{product.name}</div>
-                          <div className="product-cell-id">ID: {product.id}</div>
+                      </td>
+                      <td>{product.category_name || '—'}</td>
+                      <td>
+                        {hasDeal && (
+                          <div className="price-original-cell">
+                            ₹{parseFloat(product.original_price).toLocaleString('en-IN')}
+                          </div>
+                        )}
+                        <div className="price-cell">
+                          ₹{parseFloat(product.price).toLocaleString('en-IN')}
+                          {hasDeal && <span className="sale-tag">Sale</span>}
                         </div>
-                      </div>
-                    </td>
-                    <td>{product.category_name || '—'}</td>
-                    <td className="price-cell">₹{parseFloat(product.price).toLocaleString('en-IN')}</td>
-                    <td>
-                      {product.size_stock && product.size_stock.length > 0 ? (
-                        <div className="sizes-cell">
-                          {product.size_stock.map(s => (
-                            <span key={s.size} className={`size-chip ${s.stock === 0 ? 'oos' : ''}`}
-                              title={`Stock: ${s.stock}`}>
-                              {s.size}: {s.stock}
-                            </span>
-                          ))}
+                      </td>
+                      <td>
+                        {product.size_stock && product.size_stock.length > 0 ? (
+                          <div className="sizes-cell">
+                            {product.size_stock.map(s => (
+                              <span key={s.size} className={`size-chip ${s.stock === 0 ? 'oos' : ''}`}
+                                title={`Stock: ${s.stock}`}>
+                                {s.size}: {s.stock}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>No sizes set</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`status-pill ${product.is_active ? 'active' : 'inactive'}`}>
+                          {product.is_active ? 'Active' : 'Hidden'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="action-btns">
+                          <button className="action-btn edit" onClick={() => openEdit(product)}><Pencil size={16} /></button>
+                          <button className="action-btn delete" onClick={() => setDeleteConfirm(product)}><Trash2 size={16} /></button>
                         </div>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>No sizes set</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`status-pill ${product.is_active ? 'active' : 'inactive'}`}>
-                        {product.is_active ? 'Active' : 'Hidden'}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="action-btns">
-                        <button className="action-btn edit" onClick={() => openEdit(product)}><Pencil size={16} /></button>
-                        <button className="action-btn delete" onClick={() => setDeleteConfirm(product)}><Trash2 size={16} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -375,15 +406,51 @@ const ProductManagement = () => {
                   <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="Product description…" />
                 </div>
 
-                <div className="form-group">
-                  <label>Price (₹) *</label>
-                  <input type="number" min="0" step="0.01" value={form.price}
-                    onChange={e => setForm(f => ({ ...f, price: e.target.value }))} required placeholder="0.00"
-                    style={{ maxWidth: 200 }} />
+                {/* ── Price row: Sale Price + Original Price side by side ── */}
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Price (₹) *</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={form.price}
+                      onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+                      required placeholder="0.00"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Original Price (₹) <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.78rem' }}>— optional, for sale</span></label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={form.original_price}
+                      onChange={e => setForm(f => ({ ...f, original_price: e.target.value }))}
+                      placeholder="Leave blank if no sale"
+                    />
+                  </div>
                 </div>
 
+                {/* Live offer preview — shows only when original > price */}
+                {form.original_price && (
+                  <div className="offer-price-box">
+                    {hasValidDiscount ? (
+                      <>
+                        <div className="offer-price-preview">
+                          <span className="op-original">₹{parsedOriginal.toLocaleString('en-IN')}</span>
+                          <span>→</span>
+                          <span className="op-sale">₹{parsedPrice.toLocaleString('en-IN')}</span>
+                          <span className="op-badge">Sale — {discountPct}% off</span>
+                        </div>
+                        <p className="offer-price-hint">✓ Sale badge will appear on this product in the shop.</p>
+                      </>
+                    ) : (
+                      <p className="offer-price-hint" style={{ color: '#c0392b' }}>
+                        ⚠ Original price must be greater than sale price for the badge to show.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Size + Stock grid */}
-                <div className="form-group">
+                <div className="form-group" style={{ marginTop: 16 }}>
                   <label>Sizes & Stock</label>
                   <p className="size-stock-hint">Toggle a size ON to enable it, then set stock count for that size.</p>
                   <div className="size-stock-grid">
@@ -396,7 +463,6 @@ const ProductManagement = () => {
                         >
                           {s.size}
                         </button>
-
                         {s.active ? (
                           <div className="size-stock-input-wrap">
                             <label>Stock:</label>

@@ -4,18 +4,13 @@ import { Link } from 'react-router-dom';
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Poppins:wght@300;400;500;600;700&display=swap');
 
-  /* ── ROYAL CARD WRAPPER ── */
   .wc-card-outer {
-  position: relative;
-  padding: 0;
-  margin: 9px;
-}
+    position: relative;
+    padding: 0;
+    margin: 9px;
+  }
 
-  
-  
-
-  /* ── MAIN CARD ── */
- .wc-card {
+  .wc-card {
     background: #fffaf6;
     display: flex;
     flex-direction: column;
@@ -25,6 +20,7 @@ const styles = `
     border: 2px solid #111111;
     border-radius: 8px;
     outline: none;
+    text-decoration: none;
   }
 
   .wc-card:hover {
@@ -33,12 +29,12 @@ const styles = `
     border-color: #000000;
   }
 
-  /* ── IMAGE ── */
   .wc-card-img-wrap {
     position: relative;
     overflow: hidden;
     aspect-ratio: 3/4;
     background: #fff0f7;
+    border-radius: 6px 6px 0 0;
   }
 
   .wc-card-img-wrap img {
@@ -63,25 +59,50 @@ const styles = `
     background: linear-gradient(135deg, #fff0f7, #fce4f3);
   }
 
-  /* Sale badge */
+  /* ── SALE BADGE — soft peach pill bottom-left ── */
   .wc-card-badge {
     position: absolute;
     bottom: 10px;
     left: 10px;
-    background: linear-gradient(135deg, #c0392b, #c0392b);
-    color: white;
+    background: #f8c4aa;
+    color: #7a3a1a;
     font-family: 'Poppins', sans-serif;
-    font-size: 0.58rem;
-    font-weight: 700;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    padding: 4px 12px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 4px 14px;
     border-radius: 50px;
-    box-shadow: 0 3px 10px rgba(233,30,140,0.4);
     z-index: 4;
   }
 
-  /* Dispatch badge */
+  /* ── DISCOUNT % BADGE — top-right corner ── */
+  .wc-card-discount {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #c0392b;
+    color: white;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+    padding: 6px 8px;
+    border-radius: 6px;
+    z-index: 4;
+    text-align: center;
+    min-width: 42px;
+    box-shadow: 0 2px 8px rgba(192,57,43,0.35);
+  }
+
+  .wc-card-discount span {
+    display: block;
+    font-size: 0.58rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    opacity: 0.9;
+  }
+
+  /* ── DISPATCH BADGE — top-left ── */
   .wc-card-dispatch {
     position: absolute;
     top: 10px;
@@ -110,9 +131,9 @@ const styles = `
     background: #fffaf6;
     border-top: 1.5px solid #f0d6e8;
     position: relative;
+    border-radius: 0 0 6px 6px;
   }
 
-  /* Gold diamond divider at top of body */
   .wc-card-body::before {
     content: '✦';
     position: absolute;
@@ -139,36 +160,60 @@ const styles = `
 
   .wc-card-name:hover { color: #c0392b; }
 
+  /* ── PRICES ── */
   .wc-card-prices {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 2px;
   }
 
   .wc-card-original {
     font-family: 'Poppins', sans-serif;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: #8a6070;
     text-decoration: line-through;
+    line-height: 1.3;
+  }
+
+  .wc-card-sale-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 
   .wc-card-sale {
     font-family: 'Poppins', sans-serif;
-    font-size: 0.88rem;
-    color: #c0392b;
+    font-size: 0.95rem;
+    color: #2d0a1e;
     font-weight: 700;
+    line-height: 1.3;
+  }
+
+  /* Inline % off pill next to price */
+  .wc-card-pct {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #c0392b;
+    background: #fde8e0;
+    border: 1px solid #f8c4aa;
+    padding: 2px 7px;
+    border-radius: 20px;
+    white-space: nowrap;
   }
 
   .wc-card-price {
     font-family: 'Poppins', sans-serif;
-    font-size: 0.88rem;
+    font-size: 0.95rem;
     color: #2d0a1e;
     font-weight: 700;
     text-align: center;
   }
 
+  /* ── CHOOSE OPTIONS BUTTON ── */
   .wc-card-options-btn {
     margin-top: 6px;
     width: 100%;
@@ -194,7 +239,7 @@ const styles = `
     background: linear-gradient(135deg, #c0392b, #c0392b);
     color: white;
     border-color: transparent;
-    box-shadow: 0 4px 14px rgba(233,30,140,0.35);
+    box-shadow: 0 4px 14px rgba(192,57,43,0.35);
   }
 
   .wc-card-oos {
@@ -209,8 +254,6 @@ const styles = `
   }
 `;
 
-
-
 let stylesInjected = false;
 
 const ProductCard = ({ product }) => {
@@ -221,24 +264,51 @@ const ProductCard = ({ product }) => {
     stylesInjected = true;
   }
 
-  const hasDiscount = product.original_price && parseFloat(product.original_price) > parseFloat(product.price);
+  const hasDiscount =
+    product.original_price &&
+    parseFloat(product.original_price) > parseFloat(product.price);
+
+  const discountPct = hasDiscount
+    ? Math.round(
+        ((parseFloat(product.original_price) - parseFloat(product.price)) /
+          parseFloat(product.original_price)) *
+          100
+      )
+    : 0;
+
+  const formatPrice = (val) =>
+    `Rs. ${parseFloat(val).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
   return (
     <div className="wc-card-outer">
-      
-
       <div className="wc-card">
+
+        {/* ── Image ── */}
         <div className="wc-card-img-wrap">
           {product.image_url
             ? <img src={product.image_url} alt={product.name} loading="lazy" />
             : <div className="wc-card-no-img">{product.name?.charAt(0)}</div>
           }
-          {product.stock > 0 && (
+
+          {/* Dispatch badge — top left (hidden when sale badge + % badge are shown) */}
+          {product.stock > 0 && !hasDiscount && (
             <span className="wc-card-dispatch">Immediate Dispatch</span>
           )}
-          {hasDiscount && <span className="wc-card-badge">🏷️ Sale</span>}
+
+          {/* Discount % badge — top right, only on sale items */}
+          {hasDiscount && product.stock > 0 && (
+            <div className="wc-card-discount">
+              -{discountPct}%<span>off</span>
+            </div>
+          )}
+
+          {/* Sale pill — bottom left */}
+          {hasDiscount && product.stock > 0 && (
+            <span className="wc-card-badge">Sale</span>
+          )}
         </div>
 
+        {/* ── Body ── */}
         <div className="wc-card-body">
           <Link to={`/products/${product.id}`} className="wc-card-name">
             {product.name}
@@ -247,17 +317,14 @@ const ProductCard = ({ product }) => {
           <div className="wc-card-prices">
             {hasDiscount ? (
               <>
-                <span className="wc-card-original">
-                  Rs. {parseFloat(product.original_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </span>
-                <span className="wc-card-sale">
-                  Rs. {parseFloat(product.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </span>
+                <span className="wc-card-original">{formatPrice(product.original_price)}</span>
+                <div className="wc-card-sale-row">
+                  <span className="wc-card-sale">{formatPrice(product.price)}</span>
+                  <span className="wc-card-pct">{discountPct}% off</span>
+                </div>
               </>
             ) : (
-              <span className="wc-card-price">
-                Rs. {parseFloat(product.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
+              <span className="wc-card-price">{formatPrice(product.price)}</span>
             )}
           </div>
 
@@ -269,6 +336,7 @@ const ProductCard = ({ product }) => {
             </Link>
           )}
         </div>
+
       </div>
     </div>
   );

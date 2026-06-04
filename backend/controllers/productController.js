@@ -118,15 +118,32 @@ exports.createProduct = async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    const { name, description, price, stock, category_id, sizes, size_stock } = req.body;
+    const {
+      name, description, price,
+      original_price,   // ← NEW: sale "was" price
+      stock, category_id, sizes, size_stock,
+    } = req.body;
+
     const image_url = req.file?.path || null;
     const image_public_id = req.file?.filename || null;
 
-    // sizes is a comma-separated string e.g. "S,M,L,XL"
+    // Validate original_price: only store if it's actually > price
+    const parsedPrice = parseFloat(price) || 0;
+    const parsedOriginal = original_price ? parseFloat(original_price) : null;
+    const finalOriginal = (parsedOriginal && parsedOriginal > parsedPrice)
+      ? parsedOriginal
+      : null;
+
     const [result] = await conn.query(
-      `INSERT INTO products (name, description, price, stock, category_id, image_url, image_public_id, sizes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, description, price, stock || 0, category_id || null, image_url, image_public_id, sizes || null]
+      `INSERT INTO products
+         (name, description, price, original_price, stock, category_id,
+          image_url, image_public_id, sizes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        name, description, parsedPrice, finalOriginal,
+        stock || 0, category_id || null,
+        image_url, image_public_id, sizes || null,
+      ]
     );
 
     const product_id = result.insertId;
@@ -151,7 +168,10 @@ exports.createProduct = async (req, res) => {
     await conn.commit();
 
     const [product] = await pool.query('SELECT * FROM products WHERE id = ?', [product_id]);
-    const [sizeStockResult] = await pool.query('SELECT size, stock FROM product_size_stock WHERE product_id = ?', [product_id]);
+    const [sizeStockResult] = await pool.query(
+      'SELECT size, stock FROM product_size_stock WHERE product_id = ?',
+      [product_id]
+    );
     res.status(201).json({ ...product[0], size_stock: sizeStockResult });
   } catch (err) {
     await conn.rollback();
@@ -167,9 +187,17 @@ exports.updateProduct = async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    const { name, description, price, stock, category_id, is_active, sizes, size_stock } = req.body;
+    const {
+      name, description, price,
+      original_price,   // ← NEW
+      stock, category_id, is_active, sizes, size_stock,
+    } = req.body;
+
     const [existing] = await conn.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
-    if (existing.length === 0) { await conn.rollback(); return res.status(404).json({ message: 'Product not found' }); }
+    if (existing.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ message: 'Product not found' });
+    }
 
     let image_url = existing[0].image_url;
     let image_public_id = existing[0].image_public_id;
@@ -180,13 +208,24 @@ exports.updateProduct = async (req, res) => {
       image_public_id = req.file.filename;
     }
 
+    // Resolve original_price
+    const parsedPrice = price !== undefined ? parseFloat(price) : parseFloat(existing[0].price);
+    let finalOriginal = existing[0].original_price; // keep existing by default
+    if (original_price !== undefined) {
+      const parsedOriginal = original_price ? parseFloat(original_price) : null;
+      finalOriginal = (parsedOriginal && parsedOriginal > parsedPrice) ? parsedOriginal : null;
+    }
+
     const finalSizes = sizes !== undefined ? sizes : existing[0].sizes;
 
     await conn.query(
-      `UPDATE products SET name=?, description=?, price=?, stock=?, category_id=?,
-       image_url=?, image_public_id=?, is_active=?, sizes=? WHERE id=?`,
+      `UPDATE products
+       SET name=?, description=?, price=?, original_price=?, stock=?,
+           category_id=?, image_url=?, image_public_id=?, is_active=?, sizes=?
+       WHERE id=?`,
       [
-        name, description, price, stock, category_id || null,
+        name, description, parsedPrice, finalOriginal, stock,
+        category_id || null,
         image_url, image_public_id,
         is_active !== undefined ? is_active : existing[0].is_active,
         finalSizes, req.params.id,
@@ -197,7 +236,6 @@ exports.updateProduct = async (req, res) => {
     if (size_stock) {
       let sizeStockArr = [];
       try { sizeStockArr = JSON.parse(size_stock); } catch {}
-      // Delete all existing size stock for this product first
       await conn.query('DELETE FROM product_size_stock WHERE product_id = ?', [req.params.id]);
       for (const entry of sizeStockArr) {
         if (entry.size) {
@@ -212,7 +250,10 @@ exports.updateProduct = async (req, res) => {
     await conn.commit();
 
     const [updated] = await pool.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
-    const [sizeStockResult] = await pool.query('SELECT size, stock FROM product_size_stock WHERE product_id = ?', [req.params.id]);
+    const [sizeStockResult] = await pool.query(
+      'SELECT size, stock FROM product_size_stock WHERE product_id = ?',
+      [req.params.id]
+    );
     res.json({ ...updated[0], size_stock: sizeStockResult });
   } catch (err) {
     await conn.rollback();
@@ -227,7 +268,9 @@ exports.deleteProduct = async (req, res) => {
   try {
     const [existing] = await pool.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
     if (existing.length === 0) return res.status(404).json({ message: 'Product not found' });
-    if (existing[0].image_public_id) await cloudinary.uploader.destroy(existing[0].image_public_id).catch(console.error);
+    if (existing[0].image_public_id) {
+      await cloudinary.uploader.destroy(existing[0].image_public_id).catch(console.error);
+    }
     await pool.query('DELETE FROM products WHERE id = ?', [req.params.id]);
     res.json({ message: 'Product deleted successfully' });
   } catch (err) {
@@ -243,9 +286,9 @@ exports.createCategory = async (req, res) => {
     if (!name?.trim()) return res.status(400).json({ message: 'Category name is required' });
 
     const [existing] = await pool.query(
-  'SELECT id FROM categories WHERE LOWER(name) = LOWER(?)',
-  [name.trim()]
-);
+      'SELECT id FROM categories WHERE LOWER(name) = LOWER(?)',
+      [name.trim()]
+    );
     if (existing.length > 0) return res.status(400).json({ message: 'A category with this name already exists' });
 
     const image_url = req.file?.path || null;
@@ -271,10 +314,10 @@ exports.updateCategory = async (req, res) => {
     if (existing.length === 0) return res.status(404).json({ message: 'Category not found' });
 
     if (name?.trim()) {
-     const [dup] = await pool.query(
-  'SELECT id FROM categories WHERE LOWER(name) = LOWER(?) AND id != ?',
-  [name.trim(), id]
-);
+      const [dup] = await pool.query(
+        'SELECT id FROM categories WHERE LOWER(name) = LOWER(?) AND id != ?',
+        [name.trim(), id]
+      );
       if (dup.length > 0) return res.status(400).json({ message: 'A category with this name already exists' });
     }
 
@@ -288,7 +331,11 @@ exports.updateCategory = async (req, res) => {
 
     await pool.query(
       'UPDATE categories SET name=?, description=?, image_url=?, image_public_id=? WHERE id=?',
-      [name ? name.trim() : existing[0].name, description !== undefined ? description : existing[0].description, image_url, image_public_id, id]
+      [
+        name ? name.trim() : existing[0].name,
+        description !== undefined ? description : existing[0].description,
+        image_url, image_public_id, id,
+      ]
     );
     const [updated] = await pool.query('SELECT * FROM categories WHERE id = ?', [id]);
     res.json(updated[0]);
@@ -304,7 +351,9 @@ exports.deleteCategory = async (req, res) => {
     const [existing] = await pool.query('SELECT * FROM categories WHERE id = ?', [id]);
     if (existing.length === 0) return res.status(404).json({ message: 'Category not found' });
     await pool.query('UPDATE products SET category_id = NULL WHERE category_id = ?', [id]);
-    if (existing[0].image_public_id) await cloudinary.uploader.destroy(existing[0].image_public_id).catch(console.error);
+    if (existing[0].image_public_id) {
+      await cloudinary.uploader.destroy(existing[0].image_public_id).catch(console.error);
+    }
     await pool.query('DELETE FROM categories WHERE id = ?', [id]);
     res.json({ message: 'Category deleted successfully' });
   } catch (err) {
