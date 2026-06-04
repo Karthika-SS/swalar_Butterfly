@@ -117,7 +117,7 @@ const styles = `
 @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } .modal-form { padding: 20px; } }
 `;
 
-const ALL_SIZES = ['2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
+const ALL_SIZES = ['2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL','36','38','40','42','44','46'];
 
 const emptyForm = {
   name: '', description: '', price: '', original_price: '', category_id: '', is_active: true,
