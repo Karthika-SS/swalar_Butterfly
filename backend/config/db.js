@@ -12,7 +12,7 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
 
-  ssl: { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: true },
 });
 
 // ─── Keep-alive (prevents Aiven idle timeout) ─────────────────────────────────
