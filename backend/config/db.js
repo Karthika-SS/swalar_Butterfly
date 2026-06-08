@@ -25,6 +25,29 @@ setInterval(async () => {
   }
 }, 5 * 60 * 1000);
 
+// ─── Safe column migration helper ─────────────────────────────────────────────
+// Works on ALL MySQL versions (no IF NOT EXISTS needed).
+// Skips silently if the column already exists (ER_DUP_FIELDNAME = 1060).
+async function safeAddColumn(conn, sql) {
+  try {
+    await conn.query(sql);
+  } catch (err) {
+    if (err.errno === 1060) return; // Duplicate column — already exists, skip
+    throw err;                      // Any other error — rethrow
+  }
+}
+
+// ─── Safe index helper ────────────────────────────────────────────────────────
+// Skips silently if the index already exists (ER_DUP_KEYNAME = 1061).
+async function safeCreateIndex(conn, sql) {
+  try {
+    await conn.query(sql);
+  } catch (err) {
+    if (err.errno === 1061) return; // Duplicate index — already exists, skip
+    throw err;
+  }
+}
+
 // ─── Schema init ──────────────────────────────────────────────────────────────
 async function initDB() {
   const conn = await pool.getConnection();
@@ -151,28 +174,32 @@ async function initDB() {
     `);
 
     // ── Migrations: safe ALTER for existing databases ────────────────────────
-    for (const sql of [
-      'ALTER TABLE products ADD COLUMN IF NOT EXISTS original_price DECIMAL(10,2) DEFAULT NULL',
-      'ALTER TABLE products ADD COLUMN IF NOT EXISTS sizes VARCHAR(500) DEFAULT NULL',
-      'ALTER TABLE order_items ADD COLUMN IF NOT EXISTS size VARCHAR(20) DEFAULT NULL',
-      'ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_order_id VARCHAR(100) NULL',
-      'ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_payment_id VARCHAR(100) NULL',
-      'ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_signature VARCHAR(256) NULL',
-      'ALTER TABLE categories ADD COLUMN IF NOT EXISTS description TEXT DEFAULT NULL',
-      'ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_url VARCHAR(500) DEFAULT NULL',
-      'ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_public_id VARCHAR(255) DEFAULT NULL',
-    ]) {
-      try { await conn.query(sql); } catch (_) { /* column already exists — skip */ }
+    // Uses errno 1060 check instead of IF NOT EXISTS — works on all MySQL versions
+    const columnMigrations = [
+      'ALTER TABLE products    ADD COLUMN original_price   DECIMAL(10,2) DEFAULT NULL  AFTER price',
+      'ALTER TABLE products    ADD COLUMN sizes            VARCHAR(500)  DEFAULT NULL',
+      'ALTER TABLE products    ADD COLUMN is_active        BOOLEAN       DEFAULT TRUE',
+      'ALTER TABLE order_items ADD COLUMN size             VARCHAR(20)   DEFAULT NULL',
+      'ALTER TABLE orders      ADD COLUMN razorpay_order_id   VARCHAR(100) NULL',
+      'ALTER TABLE orders      ADD COLUMN razorpay_payment_id VARCHAR(100) NULL',
+      'ALTER TABLE orders      ADD COLUMN razorpay_signature  VARCHAR(256) NULL',
+      'ALTER TABLE categories  ADD COLUMN description      TEXT         DEFAULT NULL',
+      'ALTER TABLE categories  ADD COLUMN image_url        VARCHAR(500) DEFAULT NULL',
+      'ALTER TABLE categories  ADD COLUMN image_public_id  VARCHAR(255) DEFAULT NULL',
+    ];
+    for (const sql of columnMigrations) {
+      await safeAddColumn(conn, sql);
     }
 
     // ── Indexes ──────────────────────────────────────────────────────────────
-    for (const sql of [
+    const indexes = [
       'CREATE INDEX idx_orders_rp_order_id ON orders (razorpay_order_id)',
-      'CREATE INDEX idx_pss_product ON product_size_stock (product_id)',
-      'CREATE INDEX idx_reviews_product ON reviews (product_id)',
-      'CREATE INDEX idx_reviews_phone ON reviews (customer_phone)',
-    ]) {
-      try { await conn.query(sql); } catch (_) { /* already exists — skip */ }
+      'CREATE INDEX idx_pss_product        ON product_size_stock (product_id)',
+      'CREATE INDEX idx_reviews_product    ON reviews (product_id)',
+      'CREATE INDEX idx_reviews_phone      ON reviews (customer_phone)',
+    ];
+    for (const sql of indexes) {
+      await safeCreateIndex(conn, sql);
     }
 
     // ── Seed: settings ───────────────────────────────────────────────────────
