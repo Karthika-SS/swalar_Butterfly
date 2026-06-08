@@ -219,11 +219,8 @@ async function initDB() {
     }
 
     // ── Seed: categories ─────────────────────────────────────────────────────
-    await conn.query(`
-      INSERT INTO categories (name) VALUES
-        ('Kurtis'), ('Sarees'), ('Sets'), ('Tops'), ('Bottoms')
-      ON DUPLICATE KEY UPDATE name = name
-    `);
+    // NOTE: Removed auto-seed — categories are managed via admin panel only.
+    // Seeding here would restore deleted categories on every server restart.
 
     // ── Seed: default admin (password: admin123) ──────────────────────────────
     await conn.query(`
