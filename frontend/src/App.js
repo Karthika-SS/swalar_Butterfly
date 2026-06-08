@@ -168,9 +168,16 @@ const Footer = () => {
   const shopEmail = settings.shop_email || '';
   const monogram = shopName.charAt(0).toUpperCase();
 
+
   const waLink = shopPhone
-    ? `https://wa.me/${shopPhone.replace(/[^0-9]/g, '')}`
-    : null;
+  ? (() => {
+      const digits = shopPhone.replace(/[^0-9]/g, '');
+      const withCountry = digits.startsWith('91') && digits.length === 12
+        ? digits
+        : `91${digits}`;
+      return `https://wa.me/${withCountry}`;
+    })()
+  : null;
 
   return (
     <>
@@ -192,7 +199,7 @@ const Footer = () => {
             <p className="uz-fb-tagline">{shopTagline}</p>
             <div className="uz-fb-contact">
               {shopPhone && (
-                <a href={`tel:${shopPhone}`}>
+                <a href={`tel:+91${shopPhone.replace(/[^0-9]/g, '')}`}>
                   📞 {shopPhone}
                 </a>
               )}

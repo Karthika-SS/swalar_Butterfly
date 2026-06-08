@@ -1059,7 +1059,7 @@ const Home = () => {
             rel="noopener noreferrer"
             className="wc-insta-handle"
           >
-            📸 @_womens_choice._
+            📸 @salwar_butterfly
           </a>
         </div>
 
