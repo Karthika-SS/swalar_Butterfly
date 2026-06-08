@@ -5,9 +5,8 @@ import { CartProvider } from './context/CartContext';
 import { AdminProvider, useAdmin } from './context/AdminContext';
 import { getSettings } from './utils/api';
 import RecentPurchasePopup from './components/RecentPurchasePopup';
-
-// Inside your App() return, anywhere inside <BrowserRouter>:
-
+import PolicyModal from './components/PolicyModal';
+import SizeGuideModal from './components/SizeGuideModal';
 
 // Client Pages
 import Navbar from './components/Navbar';
@@ -101,12 +100,15 @@ const footerStyles = `
     color: rgba(255,255,255,0.35); margin-bottom: 16px;
   }
 
-  .uz-footer-col a {
+  .uz-footer-col a, .uz-footer-col button.uz-footer-btn-link {
     display: block; color: rgba(255,255,255,0.55);
     text-decoration: none; font-size: 0.82rem;
     margin-bottom: 10px; transition: color 0.2s;
+    background: none; border: none; cursor: pointer;
+    padding: 0; text-align: left; font-family: 'DM Sans', sans-serif;
   }
-  .uz-footer-col a:hover { color: white; }
+  .uz-footer-col a:hover,
+  .uz-footer-col button.uz-footer-btn-link:hover { color: white; }
 
   .uz-footer-whatsapp {
     display: inline-flex; align-items: center; gap: 8px;
@@ -134,11 +136,15 @@ const footerStyles = `
   .uz-footer-legal {
     display: flex; gap: 20px;
   }
-  .uz-footer-legal a {
+  .uz-footer-legal a,
+  .uz-footer-legal button.uz-footer-btn-link {
     font-size: 0.72rem; color: rgba(255,255,255,0.3);
     text-decoration: none; transition: color 0.2s;
+    background: none; border: none; cursor: pointer;
+    padding: 0; font-family: 'DM Sans', sans-serif;
   }
-  .uz-footer-legal a:hover { color: rgba(255,255,255,0.6); }
+  .uz-footer-legal a:hover,
+  .uz-footer-legal button.uz-footer-btn-link:hover { color: rgba(255,255,255,0.6); }
 
   @media (max-width: 900px) {
     .uz-footer-top { grid-template-columns: 1fr 1fr; }
@@ -151,6 +157,8 @@ const footerStyles = `
 
 const Footer = () => {
   const [settings, setSettings] = useState({});
+  const [policyOpen, setPolicyOpen] = useState(false);
+  const [sizeOpen, setSizeOpen] = useState(false);
 
   useEffect(() => {
     getSettings()
@@ -161,27 +169,38 @@ const Footer = () => {
       .catch(() => {});
   }, []);
 
-  const shopName = settings.shop_name || 'MyShop';
-  const shopLogo = settings.shop_logo_url || '';
-  const shopTagline = settings.shop_tagline || 'Quality products delivered to your doorstep.';
-  const shopPhone = settings.shop_phone || '';
-  const shopEmail = settings.shop_email || '';
-  const monogram = shopName.charAt(0).toUpperCase();
+  const shopName    = settings.shop_name    || 'MyShop';
+  const shopLogo    = settings.shop_logo_url || '';
+  const shopTagline = settings.shop_tagline  || 'Quality products delivered to your doorstep.';
+  const shopPhone   = settings.shop_phone    || '';
+  const shopEmail   = settings.shop_email    || '';
+  const monogram    = shopName.charAt(0).toUpperCase();
 
+  const formatPhone = (phone) => {
+    const digits = phone.replace(/[^0-9]/g, '');
+    const withCountry = digits.startsWith('91') && digits.length === 12
+      ? digits : `91${digits}`;
+    return withCountry;
+  };
 
-  const waLink = shopPhone
-  ? (() => {
-      const digits = shopPhone.replace(/[^0-9]/g, '');
-      const withCountry = digits.startsWith('91') && digits.length === 12
-        ? digits
-        : `91${digits}`;
-      return `https://wa.me/${withCountry}`;
-    })()
-  : null;
+  const waLink = shopPhone ? `https://wa.me/${formatPhone(shopPhone)}` : null;
 
   return (
     <>
       <style>{footerStyles}</style>
+
+      {/* Modals */}
+      <PolicyModal
+        isOpen={policyOpen}
+        onClose={() => setPolicyOpen(false)}
+        shopPhone={shopPhone ? formatPhone(shopPhone) : '918778921938'}
+      />
+      <SizeGuideModal
+        isOpen={sizeOpen}
+        onClose={() => setSizeOpen(false)}
+        shopPhone={shopPhone ? formatPhone(shopPhone) : '918778921938'}
+      />
+
       <footer className="uz-footer">
         <div className="uz-footer-top">
 
@@ -199,7 +218,7 @@ const Footer = () => {
             <p className="uz-fb-tagline">{shopTagline}</p>
             <div className="uz-fb-contact">
               {shopPhone && (
-                <a href={`tel:+91${shopPhone.replace(/[^0-9]/g, '')}`}>
+                <a href={`tel:+${formatPhone(shopPhone)}`}>
                   📞 {shopPhone}
                 </a>
               )}
@@ -229,19 +248,21 @@ const Footer = () => {
           <div className="uz-footer-col">
             <h4>Help</h4>
             <a href="/orders">Order Status</a>
-            <a href="#">Returns & Exchanges</a>
+            <button className="uz-footer-btn-link" onClick={() => setPolicyOpen(true)}>
+              Returns &amp; Exchanges
+            </button>
             <a href="#">Shipping Info</a>
-            <a href="#">Size Guide</a>
+            <button className="uz-footer-btn-link" onClick={() => setSizeOpen(true)}>
+              Size Guide
+            </button>
           </div>
 
           {/* Contact */}
           <div className="uz-footer-col">
             <h4>Contact Us</h4>
-            {shopPhone && <a href={`tel:${shopPhone}`}>{shopPhone}</a>}
+            {shopPhone && <a href={`tel:+${formatPhone(shopPhone)}`}>{shopPhone}</a>}
             {shopEmail && <a href={`mailto:${shopEmail}`}>{shopEmail}</a>}
-            {!shopPhone && !shopEmail && (
-              <a href="#">Contact support</a>
-            )}
+            {!shopPhone && !shopEmail && <a href="#">Contact support</a>}
             <a href="#">FAQs</a>
           </div>
 
@@ -253,8 +274,12 @@ const Footer = () => {
           </span>
           <div className="uz-footer-legal">
             <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-            <a href="#">Refund Policy</a>
+            <button className="uz-footer-btn-link" onClick={() => setPolicyOpen(true)}>
+              Refund Policy
+            </button>
+            <button className="uz-footer-btn-link" onClick={() => setSizeOpen(true)}>
+              Size Guide
+            </button>
           </div>
         </div>
       </footer>
