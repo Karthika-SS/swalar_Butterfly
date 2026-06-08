@@ -251,20 +251,13 @@ const Footer = () => {
             <button className="uz-footer-btn-link" onClick={() => setPolicyOpen(true)}>
               Returns &amp; Exchanges
             </button>
-            <a href="#">Shipping Info</a>
+            <a href="/orders">Shipping Info</a>
             <button className="uz-footer-btn-link" onClick={() => setSizeOpen(true)}>
               Size Guide
             </button>
           </div>
 
-          {/* Contact */}
-          <div className="uz-footer-col">
-            <h4>Contact Us</h4>
-            {shopPhone && <a href={`tel:+${formatPhone(shopPhone)}`}>{shopPhone}</a>}
-            {shopEmail && <a href={`mailto:${shopEmail}`}>{shopEmail}</a>}
-            {!shopPhone && !shopEmail && <a href="#">Contact support</a>}
-            <a href="#">FAQs</a>
-          </div>
+        
 
         </div>
 

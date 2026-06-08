@@ -683,9 +683,9 @@ const styles = `
 `;
 
 const MARQUEE_ITEMS = [
-  '👗 New Arrivals', '💝 Best Quality', '🚚 Fast Delivery',
-  '👜 Kurtis & Sets', '🌸 Sarees', '💳 Online Payment',
-  '🎀 Budget Friendly', '✨ Women\'s Choice',
+  '👗 New Arrivals', '💝 Best Quality', '🚚 Free Shipping',
+  '👜 salwars', '🌸 coord sets', '💳 Online Payment',
+  '🎀 Budget Friendly', '✨ salwar Butterfly',
 ];
 
 // ── Star display helper ───────────────────────────────────────
