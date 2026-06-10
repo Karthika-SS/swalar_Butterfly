@@ -7,7 +7,7 @@ import { getSettings } from './utils/api';
 import RecentPurchasePopup from './components/RecentPurchasePopup';
 import PolicyModal from './components/PolicyModal';
 import SizeGuideModal from './components/SizeGuideModal';
-
+import WhatsAppButton from './components/WhatsAppButton';
 // Client Pages
 import Navbar from './components/Navbar';
 import Home from './pages/client/Home';
@@ -326,7 +326,7 @@ function App() {
             <Route path="/checkout" element={<ClientLayout><Checkout /></ClientLayout>} />
             <Route path="/order-success" element={<ClientLayout><OrderSuccess /></ClientLayout>} />
             <Route path="/orders" element={<ClientLayout><MyOrders /></ClientLayout>} />
-
+            
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
@@ -339,6 +339,7 @@ function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <WhatsAppButton /> 
         </CartProvider>
       </AdminProvider>
     </BrowserRouter>
