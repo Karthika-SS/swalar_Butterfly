@@ -359,7 +359,7 @@ const Navbar = () => {
       {annVisible && (
         <div className="wc-ann-bar">
           <span className="wc-ann-dot" />
-          🌸 New arrivals every week · Online payment only · WhatsApp: 8778921938
+          🌸 New launches every day · Online payment only · WhatsApp: 8778921938
           <span className="wc-ann-dot" />
           <button className="wc-ann-dismiss" onClick={() => setAnnVisible(false)}><X size={12} /></button>
         </div>

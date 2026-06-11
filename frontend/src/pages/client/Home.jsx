@@ -1013,9 +1013,9 @@ const Home = () => {
         {/* ── TRUST STRIP ── */}
         <div className="wc-trust-strip">
           {[
-            { icon: '✅', label: '8,900+ Happy Customers', sub: 'on Instagram' },
+            { icon: '✅', label: '50,000+ Happy Customers', sub: 'on Instagram' },
             { icon: '📦', label: '99% Best Products',      sub: 'delivered safely' },
-            { icon: '🌸', label: '3,700+ Products',        sub: 'posted & sold' },
+            { icon: '🌸', label: '1lakh+ Products sold',        sub: 'posted & sold' },
             { icon: '💬', label: 'WhatsApp Support',       sub: '8778921938' },
           ].map((b, i) => (
             <div key={i} className="wc-trust-item">
@@ -1052,7 +1052,7 @@ const Home = () => {
 
         {/* ── INSTAGRAM CTA ── */}
         <div className="wc-insta-block">
-          <p>Follow us for daily new arrivals & exclusive offers 💕</p>
+          <p>Follow us for daily new launches every day & exclusive offers 💕</p>
           <a
             href="https://www.instagram.com/salwar_butterfly/"
             target="_blank"
