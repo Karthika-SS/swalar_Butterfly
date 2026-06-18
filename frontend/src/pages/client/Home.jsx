@@ -230,7 +230,7 @@ const styles = `
     border-color: var(--red);
     box-shadow: 0 0 0 3px rgba(192,57,43,0.1);
   }
-  .wc-cat-ring img { width: 100%; height: 100%; object-fit: cover; }
+  .wc-cat-ring img { width: 100%; height: 100%; object-fit: contain; background: white; }
 
   .wc-cat-initial {
     width: 100%; height: 100%;
