@@ -218,14 +218,25 @@ const styles = `
   }
   .wc-cat-item:hover { transform: translateY(-4px); }
 
-  .wc-cat-ring {
-    width: 84px; height: 84px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: var(--bg-soft);
-    border: 2px solid var(--border);
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
+  /* REPLACE with: */
+.wc-cat-ring {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #fff;
+  border: 2px solid var(--border);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wc-cat-ring img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+  background: #fff;
+}
   .wc-cat-item:hover .wc-cat-ring {
     border-color: var(--red);
     box-shadow: 0 0 0 3px rgba(192,57,43,0.1);
