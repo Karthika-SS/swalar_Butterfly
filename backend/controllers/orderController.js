@@ -127,7 +127,7 @@ exports.placeOrder = async (req, res) => {
         order_id: rpOrder.id,
         amount: rpOrder.amount,
         currency: rpOrder.currency,
-        name: process.env.SHOP_NAME || "Women's Choice",
+        name: process.env.SHOP_NAME || "Salwar Butterfly",
         description: `Order ${order_number}`,
         prefill: { name: customer_name, contact: customer_phone },
         theme: { color: '#e91e8c' },

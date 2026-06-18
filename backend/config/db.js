@@ -204,8 +204,8 @@ async function initDB() {
 
     // ── Seed: settings ───────────────────────────────────────────────────────
     const seedSettings = [
-      ['shop_name',          "Women's Choice"],
-      ['shop_phone',         '7010354442'],
+      ['shop_name',          "Salwar Butterfly"],
+      ['shop_phone',         '8778921938'],
       ['shop_tagline',       'Style that speaks to you'],
       ['upi_id',             ''],
       ['qr_image_url',       ''],

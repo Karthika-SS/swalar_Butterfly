@@ -475,7 +475,7 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
-const SHOP_WHATSAPP = '919876543210';
+const SHOP_WHATSAPP = '918778921938';
 
 const buildEnquiryUrl = (orderNumber) => {
   const text = encodeURIComponent(
