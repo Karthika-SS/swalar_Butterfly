@@ -8,7 +8,8 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://swalar-butterfly.vercel.app'
+    'https://swalar-butterfly.vercel.app',
+    'https://www.salwarbutterfly.in'
   ],
   credentials: true,
 }));
