@@ -233,9 +233,8 @@ const styles = `
 .wc-cat-ring img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  padding: 6px;
-  background: #fff;
+  object-fit: cover;
+  object-position: top;
 }
   .wc-cat-item:hover .wc-cat-ring {
     border-color: var(--red);
