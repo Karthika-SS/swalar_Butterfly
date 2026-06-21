@@ -224,18 +224,16 @@ exports.getRecentPurchases = async (req, res) => {
     // Fetch last 20 order items from orders placed in the last 7 days
     // Only needs: product_name, product_image, customer_address, created_at
     const [rows] = await pool.query(
-      `SELECT 
-         oi.product_name,
-         oi.product_image,
-         o.customer_address,
-         o.created_at
-       FROM order_items oi
-       JOIN orders o ON oi.order_id = o.id
-       WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-         AND o.status IN ('Confirmed', 'Shipped', 'Delivered')
-       ORDER BY o.created_at DESC
-       LIMIT 20`,
-    );
+  `SELECT 
+     oi.product_name,
+     oi.product_image,
+     o.customer_address,
+     o.created_at
+   FROM order_items oi
+   JOIN orders o ON oi.order_id = o.id
+   ORDER BY o.created_at DESC
+   LIMIT 20`
+);
     res.json(rows);
   } catch (err) {
     console.error('getRecentPurchases error:', err);
