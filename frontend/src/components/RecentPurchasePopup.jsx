@@ -172,8 +172,8 @@ const popupStyles = `
 `;
 
 // ── Main Component ────────────────────────────────────────────
-const SHOW_DURATION = 50000;   // ms the popup stays visible
-const INTERVAL     = 100000;  // ms between popups
+const SHOW_DURATION = 5000;
+const INTERVAL     = 3000;
 
 const RecentPurchasePopup = () => {
   const [purchases, setPurchases]   = useState([]);

@@ -232,7 +232,7 @@ exports.getRecentPurchases = async (req, res) => {
        FROM order_items oi
        JOIN orders o ON oi.order_id = o.id
        WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-         AND o.status != 'Cancelled'
+         AND o.status IN ('Confirmed', 'Shipped', 'Delivered')
        ORDER BY o.created_at DESC
        LIMIT 20`,
     );
