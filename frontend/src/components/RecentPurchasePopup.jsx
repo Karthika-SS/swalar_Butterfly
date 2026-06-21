@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 // ── Fetches recent delivered/confirmed orders for social proof ─
 const fetchRecentPurchases = async () => {
   try {
-    const base = import.meta.env.REACT_APP_API_URL || 'https://www.salwarbutterfly.in/api';
+    const base = import.meta.env.REACT_APP_API_URL || 'https://swalar-butterfly.onrender.com/api' ||'https://www.salwarbutterfly.in/api';
     const res = await fetch(`${base}/orders/recent-purchases`);
     if (!res.ok) return [];
     return await res.json();
