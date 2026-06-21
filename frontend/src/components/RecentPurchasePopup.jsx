@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 // ── Fetches recent delivered/confirmed orders for social proof ─
 const fetchRecentPurchases = async () => {
   try {
-    const base = import.meta.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+    const base = import.meta.env.REACT_APP_API_URL || 'https://www.salwarbutterfly.in/api';
     const res = await fetch(`${base}/orders/recent-purchases`);
     if (!res.ok) return [];
     return await res.json();
@@ -234,7 +234,7 @@ const RecentPurchasePopup = () => {
     setTimeout(() => {
       setCurrent(null);
       setLeaving(false);
-      setDismissed(false); // allow next cycle to continue
+      setDismissed(true); // allow next cycle to continue
       indexRef.current++;
       nextTimer.current = setTimeout(() => {
         // resume after close
