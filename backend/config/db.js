@@ -26,24 +26,21 @@ setInterval(async () => {
 }, 5 * 60 * 1000);
 
 // ─── Safe column migration helper ─────────────────────────────────────────────
-// Works on ALL MySQL versions (no IF NOT EXISTS needed).
-// Skips silently if the column already exists (ER_DUP_FIELDNAME = 1060).
 async function safeAddColumn(conn, sql) {
   try {
     await conn.query(sql);
   } catch (err) {
-    if (err.errno === 1060) return; // Duplicate column — already exists, skip
-    throw err;                      // Any other error — rethrow
+    if (err.errno === 1060) return;
+    throw err;
   }
 }
 
 // ─── Safe index helper ────────────────────────────────────────────────────────
-// Skips silently if the index already exists (ER_DUP_KEYNAME = 1061).
 async function safeCreateIndex(conn, sql) {
   try {
     await conn.query(sql);
   } catch (err) {
-    if (err.errno === 1061) return; // Duplicate index — already exists, skip
+    if (err.errno === 1061) return;
     throw err;
   }
 }
@@ -78,19 +75,23 @@ async function initDB() {
     // ── products ────────────────────────────────────────────────────────────
     await conn.query(`
       CREATE TABLE IF NOT EXISTS products (
-        id               INT AUTO_INCREMENT PRIMARY KEY,
-        name             VARCHAR(255)  NOT NULL,
-        description      TEXT,
-        price            DECIMAL(10,2) NOT NULL,
-        original_price   DECIMAL(10,2) DEFAULT NULL,
-        stock            INT           DEFAULT 0,
-        category_id      INT,
-        image_url        VARCHAR(500),
-        image_public_id  VARCHAR(255),
-        sizes            VARCHAR(500)  DEFAULT NULL,
-        is_active        BOOLEAN       DEFAULT TRUE,
-        created_at       TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
-        updated_at       TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        id                    INT AUTO_INCREMENT PRIMARY KEY,
+        name                  VARCHAR(255)  NOT NULL,
+        description           TEXT,
+        price                 DECIMAL(10,2) NOT NULL,
+        original_price        DECIMAL(10,2) DEFAULT NULL,
+        stock                 INT           DEFAULT 0,
+        category_id           INT,
+        image_url             VARCHAR(500),
+        image_public_id       VARCHAR(255),
+        image_url_2           VARCHAR(500)  DEFAULT NULL,
+        image_url_2_public_id VARCHAR(255)  DEFAULT NULL,
+        image_url_3           VARCHAR(500)  DEFAULT NULL,
+        image_url_3_public_id VARCHAR(255)  DEFAULT NULL,
+        sizes                 VARCHAR(500)  DEFAULT NULL,
+        is_active             BOOLEAN       DEFAULT TRUE,
+        created_at            TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+        updated_at            TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
       )
     `);
@@ -154,8 +155,6 @@ async function initDB() {
     `);
 
     // ── reviews ─────────────────────────────────────────────────────────────
-    // customer_phone identifies the buyer (no login system)
-    // order_id links to the delivered order for verification
     await conn.query(`
       CREATE TABLE IF NOT EXISTS reviews (
         id             INT AUTO_INCREMENT PRIMARY KEY,
@@ -174,18 +173,21 @@ async function initDB() {
     `);
 
     // ── Migrations: safe ALTER for existing databases ────────────────────────
-    // Uses errno 1060 check instead of IF NOT EXISTS — works on all MySQL versions
     const columnMigrations = [
-      'ALTER TABLE products    ADD COLUMN original_price   DECIMAL(10,2) DEFAULT NULL  AFTER price',
-      'ALTER TABLE products    ADD COLUMN sizes            VARCHAR(500)  DEFAULT NULL',
-      'ALTER TABLE products    ADD COLUMN is_active        BOOLEAN       DEFAULT TRUE',
-      'ALTER TABLE order_items ADD COLUMN size             VARCHAR(20)   DEFAULT NULL',
-      'ALTER TABLE orders      ADD COLUMN razorpay_order_id   VARCHAR(100) NULL',
-      'ALTER TABLE orders      ADD COLUMN razorpay_payment_id VARCHAR(100) NULL',
-      'ALTER TABLE orders      ADD COLUMN razorpay_signature  VARCHAR(256) NULL',
-      'ALTER TABLE categories  ADD COLUMN description      TEXT         DEFAULT NULL',
-      'ALTER TABLE categories  ADD COLUMN image_url        VARCHAR(500) DEFAULT NULL',
-      'ALTER TABLE categories  ADD COLUMN image_public_id  VARCHAR(255) DEFAULT NULL',
+      'ALTER TABLE products    ADD COLUMN original_price         DECIMAL(10,2) DEFAULT NULL  AFTER price',
+      'ALTER TABLE products    ADD COLUMN sizes                  VARCHAR(500)  DEFAULT NULL',
+      'ALTER TABLE products    ADD COLUMN is_active              BOOLEAN       DEFAULT TRUE',
+      'ALTER TABLE products    ADD COLUMN image_url_2            VARCHAR(500)  DEFAULT NULL',
+      'ALTER TABLE products    ADD COLUMN image_url_2_public_id  VARCHAR(255)  DEFAULT NULL',
+      'ALTER TABLE products    ADD COLUMN image_url_3            VARCHAR(500)  DEFAULT NULL',
+      'ALTER TABLE products    ADD COLUMN image_url_3_public_id  VARCHAR(255)  DEFAULT NULL',
+      'ALTER TABLE order_items ADD COLUMN size                   VARCHAR(20)   DEFAULT NULL',
+      'ALTER TABLE orders      ADD COLUMN razorpay_order_id      VARCHAR(100)  NULL',
+      'ALTER TABLE orders      ADD COLUMN razorpay_payment_id    VARCHAR(100)  NULL',
+      'ALTER TABLE orders      ADD COLUMN razorpay_signature     VARCHAR(256)  NULL',
+      'ALTER TABLE categories  ADD COLUMN description            TEXT          DEFAULT NULL',
+      'ALTER TABLE categories  ADD COLUMN image_url              VARCHAR(500)  DEFAULT NULL',
+      'ALTER TABLE categories  ADD COLUMN image_public_id        VARCHAR(255)  DEFAULT NULL',
     ];
     for (const sql of columnMigrations) {
       await safeAddColumn(conn, sql);
@@ -218,11 +220,7 @@ async function initDB() {
       );
     }
 
-    // ── Seed: categories ─────────────────────────────────────────────────────
-    // NOTE: Removed auto-seed — categories are managed via admin panel only.
-    // Seeding here would restore deleted categories on every server restart.
-
-    // ── Seed: default admin (password: admin123) ──────────────────────────────
+    // ── Seed: default admin ───────────────────────────────────────────────────
     await conn.query(`
       INSERT INTO admins (email, password) VALUES
         ('admin@shop.com', '$2a$10$kokih.oO2lhA0G0Usb.tVeKEfU0iLYzYRZgYpdWYREEGZXYnQvX8C')

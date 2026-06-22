@@ -26,7 +26,6 @@ exports.getAllProducts = async (req, res) => {
 
     const [products] = await pool.query(query, params);
 
-    // Attach size stock to each product
     const productIds = products.map(p => p.id);
     if (productIds.length > 0) {
       const [sizeStocks] = await pool.query(
@@ -58,7 +57,6 @@ exports.getProductById = async (req, res) => {
 
     const product = rows[0];
 
-    // Attach per-size stock
     const [sizeStock] = await pool.query(
       'SELECT size, stock FROM product_size_stock WHERE product_id = ?',
       [product.id]
@@ -120,14 +118,21 @@ exports.createProduct = async (req, res) => {
 
     const {
       name, description, price,
-      original_price,   // ← NEW: sale "was" price
+      original_price,
       stock, category_id, sizes, size_stock,
     } = req.body;
 
-    const image_url = req.file?.path || null;
-    const image_public_id = req.file?.filename || null;
+    const slot0 = req.files?.['image_0']?.[0];
+    const slot1 = req.files?.['image_1']?.[0];
+    const slot2 = req.files?.['image_2']?.[0];
 
-    // Validate original_price: only store if it's actually > price
+    const image_url = slot0?.path || null;
+    const image_public_id = slot0?.filename || null;
+    const image_url_2 = slot1?.path || null;
+    const image_url_2_public_id = slot1?.filename || null;
+    const image_url_3 = slot2?.path || null;
+    const image_url_3_public_id = slot2?.filename || null;
+
     const parsedPrice = parseFloat(price) || 0;
     const parsedOriginal = original_price ? parseFloat(original_price) : null;
     const finalOriginal = (parsedOriginal && parsedOriginal > parsedPrice)
@@ -137,19 +142,21 @@ exports.createProduct = async (req, res) => {
     const [result] = await conn.query(
       `INSERT INTO products
          (name, description, price, original_price, stock, category_id,
-          image_url, image_public_id, sizes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          image_url, image_public_id, image_url_2, image_url_2_public_id,
+          image_url_3, image_url_3_public_id, sizes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name, description, parsedPrice, finalOriginal,
         stock || 0, category_id || null,
-        image_url, image_public_id, sizes || null,
+        image_url, image_public_id,
+        image_url_2, image_url_2_public_id,
+        image_url_3, image_url_3_public_id,
+        sizes || null,
       ]
     );
 
     const product_id = result.insertId;
 
-    // Insert per-size stock if provided
-    // size_stock comes as JSON string: [{"size":"S","stock":10},{"size":"M","stock":5}]
     if (size_stock) {
       let sizeStockArr = [];
       try { sizeStockArr = JSON.parse(size_stock); } catch {}
@@ -189,7 +196,7 @@ exports.updateProduct = async (req, res) => {
 
     const {
       name, description, price,
-      original_price,   // ← NEW
+      original_price,
       stock, category_id, is_active, sizes, size_stock,
     } = req.body;
 
@@ -201,16 +208,34 @@ exports.updateProduct = async (req, res) => {
 
     let image_url = existing[0].image_url;
     let image_public_id = existing[0].image_public_id;
+    let image_url_2 = existing[0].image_url_2;
+    let image_url_2_public_id = existing[0].image_url_2_public_id;
+    let image_url_3 = existing[0].image_url_3;
+    let image_url_3_public_id = existing[0].image_url_3_public_id;
 
-    if (req.file) {
+    // Each slot is independent — only replace the slot that has a new file
+    const slot0 = req.files?.['image_0']?.[0];
+const slot1 = req.files?.['image_1']?.[0];
+const slot2 = req.files?.['image_2']?.[0];
+
+    if (slot0) {
       if (image_public_id) await cloudinary.uploader.destroy(image_public_id).catch(console.error);
-      image_url = req.file.path;
-      image_public_id = req.file.filename;
+      image_url = slot0.path;
+      image_public_id = slot0.filename;
+    }
+    if (slot1) {
+      if (image_url_2_public_id) await cloudinary.uploader.destroy(image_url_2_public_id).catch(console.error);
+      image_url_2 = slot1.path;
+      image_url_2_public_id = slot1.filename;
+    }
+    if (slot2) {
+      if (image_url_3_public_id) await cloudinary.uploader.destroy(image_url_3_public_id).catch(console.error);
+      image_url_3 = slot2.path;
+      image_url_3_public_id = slot2.filename;
     }
 
-    // Resolve original_price
     const parsedPrice = price !== undefined ? parseFloat(price) : parseFloat(existing[0].price);
-    let finalOriginal = existing[0].original_price; // keep existing by default
+    let finalOriginal = existing[0].original_price;
     if (original_price !== undefined) {
       const parsedOriginal = original_price ? parseFloat(original_price) : null;
       finalOriginal = (parsedOriginal && parsedOriginal > parsedPrice) ? parsedOriginal : null;
@@ -221,18 +246,22 @@ exports.updateProduct = async (req, res) => {
     await conn.query(
       `UPDATE products
        SET name=?, description=?, price=?, original_price=?, stock=?,
-           category_id=?, image_url=?, image_public_id=?, is_active=?, sizes=?
+           category_id=?, image_url=?, image_public_id=?,
+           image_url_2=?, image_url_2_public_id=?,
+           image_url_3=?, image_url_3_public_id=?,
+           is_active=?, sizes=?
        WHERE id=?`,
       [
         name, description, parsedPrice, finalOriginal, stock,
         category_id || null,
         image_url, image_public_id,
+        image_url_2, image_url_2_public_id,
+        image_url_3, image_url_3_public_id,
         is_active !== undefined ? is_active : existing[0].is_active,
         finalSizes, req.params.id,
       ]
     );
 
-    // Update per-size stock
     if (size_stock) {
       let sizeStockArr = [];
       try { sizeStockArr = JSON.parse(size_stock); } catch {}
@@ -268,9 +297,11 @@ exports.deleteProduct = async (req, res) => {
   try {
     const [existing] = await pool.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
     if (existing.length === 0) return res.status(404).json({ message: 'Product not found' });
-    if (existing[0].image_public_id) {
-      await cloudinary.uploader.destroy(existing[0].image_public_id).catch(console.error);
-    }
+
+    if (existing[0].image_public_id) await cloudinary.uploader.destroy(existing[0].image_public_id).catch(console.error);
+    if (existing[0].image_url_2_public_id) await cloudinary.uploader.destroy(existing[0].image_url_2_public_id).catch(console.error);
+    if (existing[0].image_url_3_public_id) await cloudinary.uploader.destroy(existing[0].image_url_3_public_id).catch(console.error);
+
     await pool.query('DELETE FROM products WHERE id = ?', [req.params.id]);
     res.json({ message: 'Product deleted successfully' });
   } catch (err) {

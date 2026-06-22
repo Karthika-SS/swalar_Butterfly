@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
 const authMiddleware = require('../middleware/auth');
-const { uploadProduct, uploadCategory } = require('../config/cloudinary');
+const { uploadProduct, uploadCategory, uploadProductMultiple } = require('../config/cloudinary');
 
 // ── Public routes ──────────────────────────────────────────────
 router.get('/', productController.getAllProducts);
@@ -16,7 +16,7 @@ router.post(
   '/admin/create',
   authMiddleware,
   (req, res, next) => {
-    uploadProduct.single('image')(req, res, function (err) {
+    uploadProductMultiple(req, res, function (err) {
       if (err) {
         console.error('UPLOAD ERROR:', err);
         return res.status(400).json({ message: err.message });
@@ -31,7 +31,7 @@ router.put(
   '/admin/:id',
   authMiddleware,
   (req, res, next) => {
-    uploadProduct.single('image')(req, res, function (err) {
+    uploadProductMultiple(req, res, function (err) {
       if (err) {
         console.error('UPLOAD ERROR:', err);
         return res.status(400).json({ message: err.message });

@@ -48,13 +48,18 @@ const styles = `
 .modal-close { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; display: flex; border-radius: 8px; transition: all 0.2s; }
 .modal-close:hover { background: var(--bg); color: var(--text); }
 .modal-form { padding: 24px 28px; }
-.image-upload-area { border: 2px dashed var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; margin-bottom: 20px; transition: border-color 0.2s; min-height: 160px; display: flex; align-items: center; justify-content: center; }
-.image-upload-area:hover { border-color: var(--accent); }
-.upload-placeholder { text-align: center; padding: 32px; color: var(--text-muted); }
-.upload-placeholder svg { margin-bottom: 8px; }
-.upload-placeholder p { font-weight: 500; margin-bottom: 4px; }
-.upload-placeholder span { font-size: 0.8rem; }
-.image-preview { width: 100%; max-height: 240px; object-fit: cover; display: block; }
+
+.multi-image-upload { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.image-upload-slot { border: 2px dashed var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: border-color 0.2s; min-height: 130px; display: flex; align-items: center; justify-content: center; position: relative; }
+.image-upload-slot:hover { border-color: var(--accent); }
+.image-upload-slot .slot-preview { width: 100%; height: 130px; object-fit: cover; display: block; }
+.image-upload-slot .slot-placeholder { text-align: center; padding: 16px; color: var(--text-muted); }
+.image-upload-slot .slot-placeholder svg { margin-bottom: 6px; }
+.image-upload-slot .slot-placeholder p { font-size: 0.75rem; font-weight: 500; margin: 0; }
+.image-upload-slot .slot-placeholder span { font-size: 0.68rem; }
+.image-upload-slot .slot-badge { position: absolute; top: 6px; left: 6px; background: #e91e8c; color: white; font-size: 0.6rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+.image-upload-slot .slot-remove { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.55); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .toggle-btn { display: flex; align-items: center; gap: 10px; background: none; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 12px 16px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; transition: all 0.2s; width: 100%; }
 .toggle-btn.on { color: var(--success); border-color: var(--success); background: #f0fdf4; }
@@ -65,7 +70,6 @@ const styles = `
 .confirm-box p { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 28px; }
 .confirm-actions { display: flex; gap: 12px; justify-content: center; }
 
-/* Offer price box */
 .offer-price-box {
   background: #fff8f0; border: 1.5px dashed #f8c4aa;
   border-radius: 8px; padding: 14px 16px; margin-top: 4px;
@@ -82,7 +86,6 @@ const styles = `
 .offer-price-preview .op-sale { color: #c0392b; font-weight: 700; }
 .offer-price-preview .op-badge { background: #f8c4aa; color: #7a3a1a; font-size: 0.68rem; font-weight: 600; padding: 2px 10px; border-radius: 20px; }
 
-/* Size + stock grid */
 .size-stock-grid {
   display: flex; flex-direction: column; gap: 8px; margin-top: 10px;
 }
@@ -114,7 +117,7 @@ const styles = `
 .size-chip { display: inline-block; padding: 2px 8px; background: #fce4f3; border-radius: 10px; font-size: 0.7rem; font-weight: 600; color: #e91e8c; }
 .size-chip.oos { background: #f8d7da; color: #721c24; text-decoration: line-through; }
 
-@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } .modal-form { padding: 20px; } }
+@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } .modal-form { padding: 20px; } .multi-image-upload { grid-template-columns: 1fr; } }
 `;
 
 const ALL_SIZES = ['2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL','36','38','40','42','44','46'];
@@ -131,12 +134,15 @@ const ProductManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const [form, setForm] = useState(emptyForm);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+
+  // 3 image slots
+  const [imageFiles, setImageFiles] = useState([null, null, null]);
+  const [imagePreviews, setImagePreviews] = useState(['', '', '']);
+
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const fileRef = useRef();
+  const fileRefs = [useRef(), useRef(), useRef()];
 
   const fetchAll = () => {
     setLoading(true);
@@ -151,7 +157,8 @@ const ProductManagement = () => {
   const openCreate = () => {
     setEditProduct(null);
     setForm(emptyForm);
-    setImageFile(null); setImagePreview('');
+    setImageFiles([null, null, null]);
+    setImagePreviews(['', '', '']);
     setShowModal(true);
   };
 
@@ -166,13 +173,17 @@ const ProductManagement = () => {
       name: product.name,
       description: product.description || '',
       price: product.price,
-      original_price: product.original_price || '',   // ← load existing original price
+      original_price: product.original_price || '',
       category_id: product.category_id || '',
       is_active: product.is_active,
       size_stock: sizeStockForm,
     });
-    setImagePreview(product.image_url || '');
-    setImageFile(null);
+    setImageFiles([null, null, null]);
+    setImagePreviews([
+      product.image_url || '',
+      product.image_url_2 || '',
+      product.image_url_3 || '',
+    ]);
     setShowModal(true);
   };
 
@@ -194,14 +205,27 @@ const ProductManagement = () => {
     }));
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = (index, e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    const newFiles = [...imageFiles];
+    const newPreviews = [...imagePreviews];
+    newFiles[index] = file;
+    newPreviews[index] = URL.createObjectURL(file);
+    setImageFiles(newFiles);
+    setImagePreviews(newPreviews);
   };
 
-  // Derived: is there a valid discount to preview?
+  const removeImage = (index, e) => {
+    e.stopPropagation();
+    const newFiles = [...imageFiles];
+    const newPreviews = [...imagePreviews];
+    newFiles[index] = null;
+    newPreviews[index] = '';
+    setImageFiles(newFiles);
+    setImagePreviews(newPreviews);
+  };
+
   const parsedPrice = parseFloat(form.price) || 0;
   const parsedOriginal = parseFloat(form.original_price) || 0;
   const hasValidDiscount = parsedOriginal > parsedPrice && parsedPrice > 0;
@@ -217,7 +241,6 @@ const ProductManagement = () => {
       formData.append('name', form.name);
       formData.append('description', form.description);
       formData.append('price', form.price);
-      // Only send original_price if it's actually greater than price
       formData.append('original_price', hasValidDiscount ? form.original_price : '');
       formData.append('category_id', form.category_id);
       formData.append('is_active', form.is_active);
@@ -233,7 +256,10 @@ const ProductManagement = () => {
         activeSizeStock.map(s => ({ size: s.size, stock: s.stock || 0 }))
       ));
 
-      if (imageFile) formData.append('image', imageFile);
+      // Append all 3 images under the field name 'images'
+      imageFiles.forEach((file, i) => {
+  if (file) formData.append(`image_${i}`, file);
+});
 
       if (editProduct) {
         await updateProduct(editProduct.id, formData);
@@ -265,6 +291,8 @@ const ProductManagement = () => {
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const slotLabels = ['Main', 'Image 2', 'Image 3'];
 
   return (
     <>
@@ -375,17 +403,39 @@ const ProductManagement = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="modal-form">
-                <div className="image-upload-area" onClick={() => fileRef.current.click()}>
-                  {imagePreview
-                    ? <img src={imagePreview} alt="Preview" className="image-preview" />
-                    : <div className="upload-placeholder">
-                        <Upload size={32} />
-                        <p>Click to upload product image</p>
-                        <span>JPG, PNG, WEBP up to 5MB</span>
-                      </div>
-                  }
+
+                {/* ── 3 Image Upload Slots ── */}
+                <label style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 8, display: 'block' }}>
+                  Product Images <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.78rem' }}>(up to 3)</span>
+                </label>
+                <div className="multi-image-upload">
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="image-upload-slot" onClick={() => fileRefs[i].current.click()}>
+                      <span className="slot-badge">{slotLabels[i]}</span>
+                      {imagePreviews[i] ? (
+                        <>
+                          <img src={imagePreviews[i]} alt={`Image ${i + 1}`} className="slot-preview" />
+                          <button className="slot-remove" onClick={(e) => removeImage(i, e)}>
+                            <X size={12} />
+                          </button>
+                        </>
+                      ) : (
+                        <div className="slot-placeholder">
+                          <Upload size={22} />
+                          <p>Click to upload</p>
+                          <span>JPG, PNG, WEBP</span>
+                        </div>
+                      )}
+                      <input
+                        ref={fileRefs[i]}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageChange(i, e)}
+                        hidden
+                      />
+                    </div>
+                  ))}
                 </div>
-                <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} hidden />
 
                 <div className="form-row">
                   <div className="form-group">
@@ -406,7 +456,6 @@ const ProductManagement = () => {
                   <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="Product description…" />
                 </div>
 
-                {/* ── Price row: Sale Price + Original Price side by side ── */}
                 <div className="form-row">
                   <div className="form-group">
                     <label>Price (₹) *</label>
@@ -428,7 +477,6 @@ const ProductManagement = () => {
                   </div>
                 </div>
 
-                {/* Live offer preview — shows only when original > price */}
                 {form.original_price && (
                   <div className="offer-price-box">
                     {hasValidDiscount ? (
@@ -449,7 +497,6 @@ const ProductManagement = () => {
                   </div>
                 )}
 
-                {/* Size + Stock grid */}
                 <div className="form-group" style={{ marginTop: 16 }}>
                   <label>Sizes & Stock</label>
                   <p className="size-stock-hint">Toggle a size ON to enable it, then set stock count for that size.</p>

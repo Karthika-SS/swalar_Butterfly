@@ -182,6 +182,9 @@ CREATE TABLE IF NOT EXISTS reviews (
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 );
 
+ALTER TABLE products ADD COLUMN image_url_2 VARCHAR(500);
+ALTER TABLE products ADD COLUMN image_url_3 VARCHAR(500);
+
 CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews (product_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_phone ON reviews (customer_phone);
 

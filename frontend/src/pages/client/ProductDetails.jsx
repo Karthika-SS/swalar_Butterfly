@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ShoppingBag, Package, Shield, Truck, Minus, Plus, Star } from 'lucide-react';
+import { ShoppingBag, Package, Shield, Truck, Minus, Plus, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { getProduct } from '../../utils/api';
 import toast from 'react-hot-toast';
@@ -48,18 +48,44 @@ const styles = `
     gap: 56px; align-items: start;
   }
 
-  .wc-details-img-wrap {
+  /* ── Image Gallery ── */
+  .wc-gallery { display: flex; flex-direction: column; gap: 12px; }
+
+  .wc-gallery-main {
     position: relative; aspect-ratio: 3/4; overflow: hidden;
     background: var(--pink-pale);
     border-radius: 12px; border: 1px solid var(--border);
   }
 
-  .wc-details-img-wrap img {
+  .wc-gallery-main img {
     width: 100%; height: 100%; object-fit: cover; display: block;
     transition: transform 0.5s ease;
   }
 
-  .wc-details-img-wrap:hover img { transform: scale(1.04); }
+  .wc-gallery-main:hover img { transform: scale(1.04); }
+
+  .wc-gallery-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.9); border: none; border-radius: 50%;
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: all 0.2s; color: var(--deep);
+  }
+  .wc-gallery-arrow:hover { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .wc-gallery-arrow.prev { left: 10px; }
+  .wc-gallery-arrow.next { right: 10px; }
+
+  .wc-gallery-thumbs { display: flex; gap: 8px; }
+
+  .wc-gallery-thumb {
+    width: 72px; height: 88px; border-radius: 8px; overflow: hidden;
+    border: 2px solid var(--border); cursor: pointer;
+    transition: all 0.2s; flex-shrink: 0; background: var(--pink-pale);
+  }
+
+  .wc-gallery-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .wc-gallery-thumb.active { border-color: var(--pink); box-shadow: 0 0 0 2px rgba(192,57,43,0.2); }
+  .wc-gallery-thumb:hover { border-color: var(--pink); }
 
   .wc-details-no-img {
     width: 100%; height: 100%;
@@ -269,159 +295,42 @@ const styles = `
     max-width: 1400px; margin: 0 auto;
   }
 
-  /* ══════════════════════
-     REVIEWS SECTION
-  ══════════════════════ */
+  /* ── Reviews ── */
   .wc-reviews-section {
-    max-width: 1400px;
-    margin: 56px auto 0;
-    padding: 0 24px;
+    max-width: 1400px; margin: 56px auto 0; padding: 0 24px;
     border-top: 1.5px solid var(--border);
   }
-
   .wc-reviews-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 32px 0 24px;
-    flex-wrap: wrap;
-    gap: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 32px 0 24px; flex-wrap: wrap; gap: 12px;
   }
-
   .wc-reviews-title {
     font-family: 'Playfair Display', Georgia, serif;
-    font-size: clamp(1.4rem, 2.5vw, 1.9rem);
-    font-weight: 500;
-    color: var(--deep);
-    margin: 0;
+    font-size: clamp(1.4rem, 2.5vw, 1.9rem); font-weight: 500; color: var(--deep); margin: 0;
   }
-
-  .wc-reviews-summary {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .wc-reviews-avg {
-    font-family: 'Poppins', sans-serif;
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--deep);
-    line-height: 1;
-  }
-
-  .wc-reviews-avg-detail {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .wc-reviews-count {
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.72rem;
-    color: var(--text-muted);
-  }
-
-  .wc-stars-row {
-    display: flex;
-    gap: 2px;
-  }
-
-  .wc-reviews-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 16px;
-    margin-bottom: 40px;
-  }
-
-  .wc-review-card {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    transition: box-shadow 0.2s;
-  }
-
+  .wc-reviews-summary { display: flex; align-items: center; gap: 10px; }
+  .wc-reviews-avg { font-family: 'Poppins', sans-serif; font-size: 2rem; font-weight: 700; color: var(--deep); line-height: 1; }
+  .wc-reviews-avg-detail { display: flex; flex-direction: column; gap: 4px; }
+  .wc-reviews-count { font-family: 'Poppins', sans-serif; font-size: 0.72rem; color: var(--text-muted); }
+  .wc-stars-row { display: flex; gap: 2px; }
+  .wc-reviews-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 40px; }
+  .wc-review-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: box-shadow 0.2s; }
   .wc-review-card:hover { box-shadow: 0 4px 16px rgba(192,57,43,0.08); }
-
-  .wc-review-card-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    gap: 8px;
-  }
-
-  .wc-review-name {
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--deep);
-  }
-
-  .wc-review-date {
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.68rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-    margin-top: 2px;
-  }
-
-  .wc-review-verified {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    background: var(--deep);
-    color: white;
-    padding: 3px 8px;
-    border-radius: 50px;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .wc-review-title {
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--deep);
-    margin: 8px 0 4px;
-  }
-
-  .wc-review-body {
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.82rem;
-    color: var(--text-muted);
-    line-height: 1.7;
-    margin: 0;
-  }
-
-  .wc-reviews-empty {
-    text-align: center;
-    padding: 48px 20px;
-    color: var(--text-muted);
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.9rem;
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 40px;
-  }
-
-  .wc-reviews-loading {
-    display: flex;
-    justify-content: center;
-    padding: 48px;
-  }
+  .wc-review-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; gap: 8px; }
+  .wc-review-name { font-family: 'Poppins', sans-serif; font-size: 0.82rem; font-weight: 600; color: var(--deep); }
+  .wc-review-date { font-family: 'Poppins', sans-serif; font-size: 0.68rem; color: var(--text-muted); white-space: nowrap; margin-top: 2px; }
+  .wc-review-verified { display: inline-flex; align-items: center; gap: 4px; font-family: 'Poppins', sans-serif; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.5px; background: var(--deep); color: white; padding: 3px 8px; border-radius: 50px; white-space: nowrap; flex-shrink: 0; }
+  .wc-review-title { font-family: 'Poppins', sans-serif; font-size: 0.85rem; font-weight: 600; color: var(--deep); margin: 8px 0 4px; }
+  .wc-review-body { font-family: 'Poppins', sans-serif; font-size: 0.82rem; color: var(--text-muted); line-height: 1.7; margin: 0; }
+  .wc-reviews-empty { text-align: center; padding: 48px 20px; color: var(--text-muted); font-family: 'Poppins', sans-serif; font-size: 0.9rem; background: white; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 40px; }
+  .wc-reviews-loading { display: flex; justify-content: center; padding: 48px; }
 
   @media (max-width: 768px) {
     .wc-details-grid { grid-template-columns: 1fr; gap: 28px; padding: 0 16px; }
     .wc-details-breadcrumb { padding: 16px; }
     .wc-reviews-section { padding: 0 16px; }
     .wc-reviews-grid { grid-template-columns: 1fr; }
+    .wc-gallery-thumb { width: 56px; height: 68px; }
   }
 `;
 
@@ -435,8 +344,7 @@ const StarDisplay = ({ rating, size = 14 }) => (
   <div style={{ display: 'flex', gap: 2 }}>
     {[1, 2, 3, 4, 5].map(s => (
       <Star
-        key={s}
-        size={size}
+        key={s} size={size}
         fill={s <= rating ? '#d4af37' : 'none'}
         stroke={s <= rating ? '#d4af37' : '#ddd'}
         strokeWidth={1.5}
@@ -445,10 +353,10 @@ const StarDisplay = ({ rating, size = 14 }) => (
   </div>
 );
 
-// ── Reviews Section Component ─────────────────────────────────
+// ── Reviews Section ───────────────────────────────────────────
 const ReviewsSection = ({ productId }) => {
-  const [reviews, setReviews]   = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!productId) return;
@@ -503,15 +411,9 @@ const ReviewsSection = ({ productId }) => {
                 </div>
                 <span className="wc-review-verified">✓ Verified</span>
               </div>
-
               <StarDisplay rating={review.rating} size={14} />
-
-              {review.title && (
-                <div className="wc-review-title">{review.title}</div>
-              )}
-              {review.body && (
-                <p className="wc-review-body">{review.body}</p>
-              )}
+              {review.title && <div className="wc-review-title">{review.title}</div>}
+              {review.body && <p className="wc-review-body">{review.body}</p>}
             </div>
           ))}
         </div>
@@ -528,6 +430,7 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState(null);
   const [sizeError, setSizeError] = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
   const { addToCart, cart } = useCart();
 
   const cartItem = cart.find(i => i.id === product?.id && i.size === selectedSize);
@@ -536,15 +439,18 @@ const ProductDetails = () => {
 
   const sizeStock = {};
   if (Array.isArray(product?.size_stock)) {
-    product.size_stock.forEach(item => {
-      sizeStock[item.size] = item.stock;
-    });
+    product.size_stock.forEach(item => { sizeStock[item.size] = item.stock; });
   }
+
+  // Build image list from product (filter out empty)
+  const allImages = product
+    ? [product.image_url, product.image_url_2, product.image_url_3].filter(Boolean)
+    : [];
 
   useEffect(() => {
     setLoading(true);
     getProduct(id)
-      .then(r => { setProduct(r.data); })
+      .then(r => { setProduct(r.data); setActiveImg(0); })
       .catch(() => setProduct(null))
       .finally(() => setLoading(false));
   }, [id]);
@@ -562,6 +468,9 @@ const ProductDetails = () => {
     for (let i = 0; i < quantity; i++) addToCart(productWithSize);
     toast.success(`${quantity}× ${product.name}${selectedSize ? ` (${selectedSize})` : ''} added to cart! 🛍️`);
   };
+
+  const prevImg = () => setActiveImg(i => (i - 1 + allImages.length) % allImages.length);
+  const nextImg = () => setActiveImg(i => (i + 1) % allImages.length);
 
   if (loading) return (
     <div className="loading-container" style={{ minHeight: '60vh' }}>
@@ -594,20 +503,51 @@ const ProductDetails = () => {
         </div>
 
         <div className="wc-details-grid">
-          {/* Image */}
-          <div className="wc-details-img-wrap">
-            {product.image_url
-              ? <img src={product.image_url} alt={product.name} />
-              : <div className="wc-details-no-img">
+
+          {/* ── Image Gallery ── */}
+          <div className="wc-gallery">
+            <div className="wc-gallery-main">
+              {allImages.length > 0 ? (
+                <>
+                  <img src={allImages[activeImg]} alt={product.name} />
+                  {allImages.length > 1 && (
+                    <>
+                      <button className="wc-gallery-arrow prev" onClick={prevImg}>
+                        <ChevronLeft size={18} />
+                      </button>
+                      <button className="wc-gallery-arrow next" onClick={nextImg}>
+                        <ChevronRight size={18} />
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                <div className="wc-details-no-img">
                   <Package size={80} color="#e91e8c" />
                   <p>No image available</p>
                 </div>
-            }
-            {product.stock === 0 && <div className="wc-details-oos-banner">Out of Stock</div>}
-            {hasDiscount && <span className="wc-details-sale-badge">🏷️ Sale</span>}
+              )}
+              {product.stock === 0 && <div className="wc-details-oos-banner">Out of Stock</div>}
+              {hasDiscount && <span className="wc-details-sale-badge">🏷️ Sale</span>}
+            </div>
+
+            {/* Thumbnails — only show if more than 1 image */}
+            {allImages.length > 1 && (
+              <div className="wc-gallery-thumbs">
+                {allImages.map((img, i) => (
+                  <div
+                    key={i}
+                    className={`wc-gallery-thumb ${activeImg === i ? 'active' : ''}`}
+                    onClick={() => setActiveImg(i)}
+                  >
+                    <img src={img} alt={`View ${i + 1}`} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Info */}
+          {/* ── Info ── */}
           <div className="wc-details-info">
             <span className="wc-details-vendor">{product.category_name || "Salwar Butterfly"}</span>
             <h1 className="wc-details-title">{product.name}</h1>
@@ -642,7 +582,6 @@ const ProductDetails = () => {
                   <span>Size {selectedSize && <strong>— {selectedSize}</strong>}</span>
                   <span className="wc-size-required">✦ Required</span>
                 </div>
-
                 <div className="wc-sizes">
                   {availableSizes.map(size => {
                     const stock = sizeStock[size] || 0;
@@ -652,15 +591,11 @@ const ProductDetails = () => {
                         key={size}
                         disabled={outOfStock}
                         className={`wc-size-btn ${selectedSize === size ? 'selected' : ''}`}
-                        onClick={() => {
-                          if (!outOfStock) { setSelectedSize(size); setSizeError(false); }
-                        }}
+                        onClick={() => { if (!outOfStock) { setSelectedSize(size); setSizeError(false); } }}
                         style={{
                           opacity: outOfStock ? 0.5 : 1,
                           cursor: outOfStock ? 'not-allowed' : 'pointer',
-                          flexDirection: 'column',
-                          height: 'auto',
-                          padding: '10px 14px',
+                          flexDirection: 'column', height: 'auto', padding: '10px 14px',
                         }}
                       >
                         <span>{size}</span>
@@ -671,10 +606,7 @@ const ProductDetails = () => {
                     );
                   })}
                 </div>
-
-                {sizeError && (
-                  <p className="wc-size-error">💕 Please select a size to continue</p>
-                )}
+                {sizeError && <p className="wc-size-error">💕 Please select a size to continue</p>}
               </>
             )}
 
@@ -726,9 +658,7 @@ const ProductDetails = () => {
           </div>
         </div>
 
-        {/* ── Reviews Section ── */}
         <ReviewsSection productId={product.id} />
-
       </div>
     </>
   );

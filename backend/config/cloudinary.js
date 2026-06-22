@@ -20,7 +20,11 @@ const productStorage = new CloudinaryStorage({
     transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }],
   },
 });
-const uploadProduct = multer({ storage: productStorage });
+const uploadProductMultiple = multer({ storage: productStorage }).fields([
+  { name: 'image_0', maxCount: 1 },
+  { name: 'image_1', maxCount: 1 },
+  { name: 'image_2', maxCount: 1 },
+]);
 
 // ── QR / Logo ─────────────────────────────────────────────────
 const qrStorage = new CloudinaryStorage({
@@ -43,4 +47,5 @@ const categoryStorage = new CloudinaryStorage({
 });
 const uploadCategory = multer({ storage: categoryStorage });
 
-module.exports = { cloudinary, uploadProduct, uploadQR, uploadCategory };
+
+module.exports = { cloudinary,uploadProductMultiple , uploadQR, uploadCategory };
