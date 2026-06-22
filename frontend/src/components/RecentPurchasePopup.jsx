@@ -225,8 +225,8 @@ const RecentPurchasePopup = () => {
       }, SHOW_DURATION);
     };
 
-    // First popup after 3 seconds
-    nextTimer.current = setTimeout(showNext, 3000);
+    // First popup after 10 seconds
+    nextTimer.current = setTimeout(showNext, 40000);
 
     return () => {
       clearTimeout(hideTimer.current);
