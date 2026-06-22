@@ -106,6 +106,11 @@ const popupStyles = `
     font-size: 1.4rem;
   }
 
+  .rpp-name {
+  font-weight: 700;
+  color: white;
+  font-size: 0.84rem;
+}
   .rpp-text { flex: 1; min-width: 0; }
 
   .rpp-headline {
@@ -187,6 +192,8 @@ const RecentPurchasePopup = () => {
   // Fetch on mount
   useEffect(() => {
     fetchRecentPurchases().then(data => {
+      console.log('API response:', data[0]);
+      console.log('API response:', data);
       // Filter to only items with a valid time (within 7 days)
       const valid = data.filter(p => timeAgo(p.created_at) !== null);
       setPurchases(valid);
@@ -274,12 +281,13 @@ const RecentPurchasePopup = () => {
 
             {/* Text */}
             <div className="rpp-text">
-              <p className="rpp-headline">
-                Someone from {city} purchased
-              </p>
-              <p className="rpp-product">{item.product_name}</p>
-              <p className="rpp-time">{timeStr}</p>
-            </div>
+ <p className="rpp-headline">
+  <span className="rpp-name">{item.customer_name}</span>
+  {' '}from {city}
+</p>
+  <p className="rpp-product">{item.product_name}</p>
+  <p className="rpp-time">{timeStr}</p>
+</div>
 
             {/* Close */}
             <button className="rpp-close" onClick={handleClose} aria-label="Close">

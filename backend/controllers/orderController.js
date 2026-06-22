@@ -225,6 +225,7 @@ exports.getRecentPurchases = async (req, res) => {
     // Only needs: product_name, product_image, customer_address, created_at
     const [rows] = await pool.query(
   `SELECT 
+      o.customer_name ,
      oi.product_name,
      oi.product_image,
      o.customer_address,

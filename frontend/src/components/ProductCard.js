@@ -291,9 +291,7 @@ const ProductCard = ({ product }) => {
           }
 
           {/* Dispatch badge — top left (hidden when sale badge + % badge are shown) */}
-          {product.stock > 0 && !hasDiscount && (
-            <span className="wc-card-dispatch">Immediate Dispatch</span>
-          )}
+          {product.stock > 0 && !hasDiscount }
 
           {/* Discount % badge — top right, only on sale items */}
           {hasDiscount && product.stock > 0 && (

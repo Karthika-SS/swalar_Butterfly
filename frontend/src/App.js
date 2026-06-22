@@ -283,6 +283,7 @@ const Footer = () => {
 // Client layout wrapper
 const ClientLayout = ({ children }) => (
   <>
+  <RecentPurchasePopup />
     <Navbar />
     <main>{children}</main>
     <Footer />
@@ -304,7 +305,7 @@ function App() {
   return (
     <BrowserRouter>
       <AdminProvider>
-        <RecentPurchasePopup />
+        
         <CartProvider>
           <Toaster
             position="top-right"
