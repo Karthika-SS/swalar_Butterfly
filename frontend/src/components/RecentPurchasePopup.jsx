@@ -177,8 +177,8 @@ const popupStyles = `
 `;
 
 // ── Main Component ────────────────────────────────────────────
-const SHOW_DURATION = 5000;
-const INTERVAL     = 3000;
+const SHOW_DURATION = 10000;
+const INTERVAL     = 60000;
 
 const RecentPurchasePopup = () => {
   const [purchases, setPurchases]   = useState([]);
