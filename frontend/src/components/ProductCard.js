@@ -284,6 +284,7 @@ const ProductCard = ({ product }) => {
       <div className="wc-card">
 
         {/* ── Image ── */}
+        <Link to={`/products/${product.id}`}>
         <div className="wc-card-img-wrap">
           {product.image_url
             ? <img src={product.image_url} alt={product.name} loading="lazy" />
@@ -305,7 +306,7 @@ const ProductCard = ({ product }) => {
             <span className="wc-card-badge">Sale</span>
           )}
         </div>
-
+</Link>
         {/* ── Body ── */}
         <div className="wc-card-body">
           <Link to={`/products/${product.id}`} className="wc-card-name">
