@@ -47,7 +47,7 @@ export const getOrderByNumber   = (num)          => API.get(`/orders/number/${nu
 export const adminGetOrders     = (params)       => API.get('/orders/admin/all', { params });
 export const getDashboardStats  = ()             => API.get('/orders/admin/dashboard');
 export const updateOrderStatus  = (id, status)  => API.put(`/orders/admin/${id}/status`, { status });
-
+export const deleteOrder = (id) => API.delete(`/orders/admin/delete/${id}`);
 // Settings
 export const getSettings    = ()     => API.get('/settings');
 export const updateSettings = (data) => API.put('/settings/admin/update', data);

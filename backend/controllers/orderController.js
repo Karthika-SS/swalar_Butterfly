@@ -94,7 +94,6 @@ exports.placeOrder = async (req, res) => {
 
     await conn.commit();
 
-    // ── Create Razorpay order ──────────────────────────────────
     const rpOrder = await razorpay.orders.create({
       amount: Math.round(total_amount * 100),
       currency: 'INR',
@@ -104,16 +103,11 @@ exports.placeOrder = async (req, res) => {
 
     await pool.query('UPDATE orders SET razorpay_order_id = ? WHERE id = ?', [rpOrder.id, order_id]);
 
-    // ── Build WhatsApp confirmation link ───────────────────────
-    // After checkout, frontend should open this URL in a new tab
-    // so the customer can send a confirmation message to the shop.
     const shopWhatsApp = process.env.SHOP_WHATSAPP || '';
     const waText = encodeURIComponent(
       `Hi! I just placed an order at your shop.\nOrder No: ${order_number}\nTotal: Rs.${parseFloat(total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}\nPlease confirm my order. 🙏`
     );
-    const whatsapp_url = shopWhatsApp
-      ? `https://wa.me/${shopWhatsApp}?text=${waText}`
-      : null;
+    const whatsapp_url = shopWhatsApp ? `https://wa.me/${shopWhatsApp}?text=${waText}` : null;
 
     return res.status(201).json({
       message: 'Order created. Complete payment.',
@@ -121,7 +115,7 @@ exports.placeOrder = async (req, res) => {
       order_id,
       total_amount,
       payment_method: 'ONLINE',
-      whatsapp_url,           // ← frontend opens this after successful payment
+      whatsapp_url,
       razorpay: {
         key_id: process.env.RAZORPAY_KEY_ID,
         order_id: rpOrder.id,
@@ -175,7 +169,6 @@ exports.verifyPayment = async (req, res) => {
       [razorpay_payment_id, razorpay_signature, order_id]
     );
 
-    // ── Deduct stock (size-based if size exists) ───────────────
     const [items] = await pool.query('SELECT * FROM order_items WHERE order_id = ?', [order_id]);
     for (const item of items) {
       if (item.size) {
@@ -195,20 +188,17 @@ exports.verifyPayment = async (req, res) => {
       }
     }
 
-    // ── Build WhatsApp confirmation link for response ──────────
     const shopWhatsApp = process.env.SHOP_WHATSAPP || '';
     const waText = encodeURIComponent(
       `Hi! My payment is confirmed for order ${order.order_number}.\nTotal: Rs.${parseFloat(order.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}\nPlease process my order. 🙏`
     );
-    const whatsapp_url = shopWhatsApp
-      ? `https://wa.me/${shopWhatsApp}?text=${waText}`
-      : null;
+    const whatsapp_url = shopWhatsApp ? `https://wa.me/${shopWhatsApp}?text=${waText}` : null;
 
     return res.json({
       message: 'Payment verified. Order confirmed!',
       order_number: order.order_number,
       total_amount: order.total_amount,
-      whatsapp_url,           // ← frontend can open this on the success page
+      whatsapp_url,
     });
   } catch (err) {
     console.error('verifyPayment error:', err);
@@ -216,25 +206,23 @@ exports.verifyPayment = async (req, res) => {
   }
 };
 
-
-// Paste this function anywhere in your existing orderController.js
- 
+// ─────────────────────────────────────────────────────────────
+// PUBLIC - Recent Purchases
+// ─────────────────────────────────────────────────────────────
 exports.getRecentPurchases = async (req, res) => {
   try {
-    // Fetch last 20 order items from orders placed in the last 7 days
-    // Only needs: product_name, product_image, customer_address, created_at
     const [rows] = await pool.query(
-  `SELECT 
-      o.customer_name ,
-     oi.product_name,
-     oi.product_image,
-     o.customer_address,
-     o.created_at
-   FROM order_items oi
-   JOIN orders o ON oi.order_id = o.id
-   ORDER BY o.created_at DESC
-   LIMIT 20`
-);
+      `SELECT 
+          o.customer_name,
+          oi.product_name,
+          oi.product_image,
+          o.customer_address,
+          o.created_at
+       FROM order_items oi
+       JOIN orders o ON oi.order_id = o.id
+       ORDER BY o.created_at DESC
+       LIMIT 20`
+    );
     res.json(rows);
   } catch (err) {
     console.error('getRecentPurchases error:', err);
@@ -340,7 +328,7 @@ exports.getOrderByNumber = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// ADMIN
+// ADMIN - Get All Orders
 // ─────────────────────────────────────────────────────────────
 exports.adminGetAllOrders = async (req, res) => {
   try {
@@ -371,6 +359,9 @@ exports.adminGetAllOrders = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
+// ADMIN - Update Order Status
+// ─────────────────────────────────────────────────────────────
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -384,6 +375,41 @@ exports.updateOrderStatus = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
+// ADMIN - Delete Order
+// ─────────────────────────────────────────────────────────────
+exports.deleteOrder = async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { id } = req.params;
+
+    const [orders] = await conn.query('SELECT * FROM orders WHERE id = ?', [id]);
+    if (orders.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Delete child rows first to avoid FK constraint errors
+    await conn.query('DELETE FROM order_items WHERE order_id = ?', [id]);
+    await conn.query('DELETE FROM orders WHERE id = ?', [id]);
+
+    await conn.commit();
+    console.log(`[Admin] Order ID ${id} deleted`);
+    res.json({ message: 'Order deleted successfully' });
+  } catch (err) {
+    await conn.rollback();
+    console.error('deleteOrder error:', err);
+    res.status(500).json({ message: 'Server error' });
+  } finally {
+    conn.release();
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// ADMIN - Dashboard Stats
+// ─────────────────────────────────────────────────────────────
 exports.getDashboardStats = async (req, res) => {
   try {
     const [[{ total_orders }]] = await pool.query('SELECT COUNT(*) as total_orders FROM orders');

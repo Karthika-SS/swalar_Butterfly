@@ -331,7 +331,7 @@ const ProductCard = ({ product }) => {
             <span className="wc-card-oos">Out of stock</span>
           ) : (
             <Link to={`/products/${product.id}`} className="wc-card-options-btn">
-              Choose options
+              Select Size
             </Link>
           )}
         </div>

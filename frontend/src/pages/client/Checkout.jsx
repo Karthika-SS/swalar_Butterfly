@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronDown, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
@@ -368,6 +368,9 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
 
+  // ── Prevent duplicate order submissions ──────────────────────
+  const submittedRef = useRef(false);
+
   const [form, setForm] = useState({
     customer_name: '',
     customer_phone: '',
@@ -389,11 +392,16 @@ const Checkout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // ── Block if already submitted ───────────────────────────
+    if (submittedRef.current) return;
+
     if (!form.customer_name.trim() || !form.customer_phone.trim() || !form.customer_address.trim()) {
       toast.error('Please fill in all required fields');
       return;
     }
 
+    // ── Lock immediately to prevent double clicks ────────────
+    submittedRef.current = true;
     setLoading(true);
 
     try {
@@ -425,6 +433,7 @@ const Checkout = () => {
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
         toast.error('Payment gateway failed to load. Please try again.');
+        submittedRef.current = false; // ── unlock on script failure
         setLoading(false);
         return;
       }
@@ -464,16 +473,24 @@ const Checkout = () => {
                 },
               });
             } else {
+              // ── Payment verification failed — unlock so user can retry
+              submittedRef.current = false;
+              setLoading(false);
               toast.error(verifyRes.message || 'Payment verification failed. Contact support.');
             }
           } catch {
             toast.dismiss('verify');
+            // ── Unlock on verification error
+            submittedRef.current = false;
+            setLoading(false);
             toast.error('Verification error. Please contact support with your payment ID.');
           }
         },
 
         modal: {
           ondismiss: () => {
+            // ── User closed payment modal — unlock so they can try again
+            submittedRef.current = false;
             setLoading(false);
             toast('Payment cancelled. Your order is saved – complete payment to confirm.', {
               icon: '⚠️',
@@ -484,12 +501,16 @@ const Checkout = () => {
       });
 
       rzp.on('payment.failed', (response) => {
+        // ── Unlock on payment failure so user can retry
+        submittedRef.current = false;
         setLoading(false);
         toast.error(`Payment failed: ${response.error.description}`);
       });
 
       rzp.open();
     } catch (err) {
+      // ── Unlock on any unexpected error
+      submittedRef.current = false;
       setLoading(false);
       toast.error(err.response?.data?.message || 'Failed to place order. Try again.');
     }
@@ -589,8 +610,6 @@ const Checkout = () => {
                 <label htmlFor="save_info">Save this information for next time</label>
               </div>
 
-              
-
               {/* Payment */}
               <div className="uz-checkout-section-title" style={{ marginTop: 28 }}>Payment</div>
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '0.75rem', color: '#aaa', marginBottom: 12, fontStyle: 'italic' }}>
@@ -609,8 +628,6 @@ const Checkout = () => {
                     <span>+4</span>
                   </div>
                 </label>
-
-                
               </div>
 
               {form.payment_method === 'ONLINE' && (
@@ -618,12 +635,6 @@ const Checkout = () => {
                   You'll be redirected to the payment gateway to complete your purchase securely.
                 </div>
               )}
-
-              
-
-             
-
-              
 
               {/* Total row */}
               <div className="uz-checkout-total-row">

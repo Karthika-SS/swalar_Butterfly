@@ -33,6 +33,7 @@ router.get('/recent-purchases', orderController.getRecentPurchases);
 router.get('/admin/all', authMiddleware, orderController.adminGetAllOrders);
 router.get('/admin/dashboard', authMiddleware, orderController.getDashboardStats);
 router.put('/admin/:id/status', authMiddleware, orderController.updateOrderStatus);
+router.delete('/admin/delete/:id', authMiddleware, orderController.deleteOrder);
 
 module.exports = router;
 
