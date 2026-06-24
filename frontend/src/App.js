@@ -257,8 +257,6 @@ const Footer = () => {
             </button>
           </div>
 
-        
-
         </div>
 
         <div className="uz-footer-bottom">
@@ -280,13 +278,14 @@ const Footer = () => {
   );
 };
 
-// Client layout wrapper
+// Client layout wrapper — RecentPurchasePopup and WhatsAppButton only render for client pages
 const ClientLayout = ({ children }) => (
   <>
-  <RecentPurchasePopup />
+    <RecentPurchasePopup />
     <Navbar />
     <main>{children}</main>
     <Footer />
+    <WhatsAppButton />
   </>
 );
 
@@ -305,7 +304,6 @@ function App() {
   return (
     <BrowserRouter>
       <AdminProvider>
-        
         <CartProvider>
           <Toaster
             position="top-right"
@@ -327,7 +325,7 @@ function App() {
             <Route path="/checkout" element={<ClientLayout><Checkout /></ClientLayout>} />
             <Route path="/order-success" element={<ClientLayout><OrderSuccess /></ClientLayout>} />
             <Route path="/orders" element={<ClientLayout><MyOrders /></ClientLayout>} />
-            
+
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
@@ -340,7 +338,6 @@ function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          <WhatsAppButton /> 
         </CartProvider>
       </AdminProvider>
     </BrowserRouter>
