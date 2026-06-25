@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ShoppingBag, Package, Shield, Truck, Minus, Plus, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
-import { getProduct } from '../../utils/api';
+import { getProduct, getProductReviews } from '../../utils/api';
 import toast from 'react-hot-toast';
 
 const styles = `
@@ -361,11 +361,10 @@ const ReviewsSection = ({ productId }) => {
   useEffect(() => {
     if (!productId) return;
     setLoading(true);
-    fetch(`${import.meta.env.VITE_API_URL || ''}/api/reviews/product/${productId}`)
-      .then(r => r.json())
-      .then(data => setReviews(Array.isArray(data) ? data : []))
-      .catch(() => setReviews([]))
-      .finally(() => setLoading(false));
+    getProductReviews(productId)
+  .then(res => setReviews(Array.isArray(res.data) ? res.data : []))
+  .catch(() => setReviews([]))
+  .finally(() => setLoading(false));
   }, [productId]);
 
   const avgRating = reviews.length
