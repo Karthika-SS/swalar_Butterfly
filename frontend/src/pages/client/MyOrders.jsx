@@ -511,38 +511,29 @@ const ReviewModal = ({ item, phone, orderId, customerName, onClose, onSubmitted 
   const [body, setBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!rating) return toast.error('Please select a rating');
-    setSubmitting(true);
-    try {
-      const res = await fetch(
-        `${import.meta.env.REACT_APP_API_URL || ''}/api/reviews`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            product_id: item.product_id,
-            product_name: item.product_name,
-            order_id: orderId,
-            customer_phone: phone,
-            customer_name: customerName || 'Customer',
-            rating,
-            title,
-            body,
-          }),
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to submit');
-      toast.success('Review submitted! Thank you 🎉');
-      onSubmitted(item.product_id);
-      onClose();
-    } catch (err) {
-      toast.error(err.message || 'Failed to submit review');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+ const handleSubmit = async () => {
+  if (!rating) return toast.error('Please select a rating');
+  setSubmitting(true);
+  try {
+    const { data } = await submitReview({
+      product_id: item.product_id,
+      product_name: item.product_name,
+      order_id: orderId,
+      customer_phone: phone,
+      customer_name: customerName || 'Customer',
+      rating,
+      title,
+      body,
+    });
+    toast.success('Review submitted! Thank you 🎉');
+    onSubmitted(item.product_id);
+    onClose();
+  } catch (err) {
+    toast.error(err.response?.data?.message || err.message || 'Failed to submit review');
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <div
