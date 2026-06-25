@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Package, ChevronDown, ChevronUp, Star } from 'lucide-react';
-import { getOrdersByPhone } from '../../utils/api';
+import { getOrdersByPhone , submitReview  } from '../../utils/api';
 import toast from 'react-hot-toast';
 
 // ── Styles ────────────────────────────────────────────────────
@@ -516,7 +516,7 @@ const ReviewModal = ({ item, phone, orderId, customerName, onClose, onSubmitted 
     setSubmitting(true);
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL || ''}/api/reviews`,
+        `${import.meta.env.REACT_APP_API_URL || ''}/api/reviews`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

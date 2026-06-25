@@ -48,6 +48,7 @@ export const adminGetOrders     = (params)       => API.get('/orders/admin/all',
 export const getDashboardStats  = ()             => API.get('/orders/admin/dashboard');
 export const updateOrderStatus  = (id, status)  => API.put(`/orders/admin/${id}/status`, { status });
 export const deleteOrder = (id) => API.delete(`/orders/admin/delete/${id}`);
+export const submitReview = (data) => API.post('/reviews', data);
 // Settings
 export const getSettings    = ()     => API.get('/settings');
 export const updateSettings = (data) => API.put('/settings/admin/update', data);
