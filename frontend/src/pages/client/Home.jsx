@@ -720,7 +720,7 @@ const ReviewsCarousel = () => {
   const trackRef = useRef(null);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || ''}/api/reviews/recent?limit=12`)
+    fetch(`${import.meta.env.REACT_APP_API_URL || ''}/reviews/recent?limit=12`)
       .then(r => r.json())
       .then(data => setReviews(Array.isArray(data) ? data : []))
       .catch(() => setReviews([]))

@@ -512,7 +512,7 @@ const ReviewModal = ({ item, phone, orderId, customerName, onClose, onSubmitted 
   const [submitting, setSubmitting] = useState(false);
 
  const handleSubmit = async () => {
-  console.log('API baseURL:', API.defaults.baseURL);
+  
   if (!rating) return toast.error('Please select a rating');
   setSubmitting(true);
   try {
