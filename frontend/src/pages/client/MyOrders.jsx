@@ -505,7 +505,7 @@ const StarRating = ({ value, onChange }) => (
 );
 
 // ── Review Modal ──────────────────────────────────────────────
-const ReviewModal = ({ item, phone, customerName, onClose, onSubmitted }) => {
+const ReviewModal = ({ item, phone, orderId, customerName, onClose, onSubmitted }) => {
   const [rating, setRating] = useState(5);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -522,6 +522,8 @@ const ReviewModal = ({ item, phone, customerName, onClose, onSubmitted }) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             product_id: item.product_id,
+            product_name: item.product_name,
+            order_id: orderId,
             customer_phone: phone,
             customer_name: customerName || 'Customer',
             rating,
@@ -775,7 +777,7 @@ const MyOrders = () => {
                                     </div>
 
                                     {/* Review button — only for delivered orders */}
-                                    {isDelivered && item.product_id && (
+                                    {isDelivered && (item.product_id || item.product_name) && (
                                       alreadyReviewed ? (
                                         <div className="uz-reviewed-badge">
                                           ✓ Review Submitted
@@ -783,10 +785,7 @@ const MyOrders = () => {
                                       ) : (
                                         <button
                                           className="uz-review-btn"
-                                          onClick={() => setReviewModal({
-                                            item,
-                                            customerName: order.customer_name,
-                                          })}
+                                          onClick={() => setReviewModal({ item, customerName: order.customer_name, orderId: order.id })}
                                         >
                                           <Star size={11} />
                                           Write a Review
@@ -828,14 +827,15 @@ const MyOrders = () => {
 
       {/* Review Modal */}
       {reviewModal && (
-        <ReviewModal
-          item={reviewModal.item}
-          phone={phone}
-          customerName={reviewModal.customerName}
-          onClose={() => setReviewModal(null)}
-          onSubmitted={handleReviewSubmitted}
-        />
-      )}
+  <ReviewModal
+    item={reviewModal.item}
+    phone={phone}
+    orderId={reviewModal.orderId}     
+    customerName={reviewModal.customerName}
+    onClose={() => setReviewModal(null)}
+    onSubmitted={handleReviewSubmitted}
+  />
+)}
     </>
   );
 };
