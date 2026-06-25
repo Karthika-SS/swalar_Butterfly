@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronLeft, ChevronRight, Truck, Shield, RefreshCw, Phone, Heart, Sparkles, Star } from 'lucide-react';
 import ProductCard from '../../components/ProductCard';
-import { getProducts, getCategories, getSettings } from '../../utils/api';
+import { getProducts, getCategories, getSettings, getRecentReviews } from '../../utils/api';
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -720,11 +720,11 @@ const ReviewsCarousel = () => {
   const trackRef = useRef(null);
 
   useEffect(() => {
-    fetch(`${import.meta.env.REACT_APP_API_URL || ''}/reviews/recent?limit=12`)
-      .then(r => r.json())
-      .then(data => setReviews(Array.isArray(data) ? data : []))
-      .catch(() => setReviews([]))
-      .finally(() => setLoading(false));
+    getRecentReviews(12)
+  .then(res => setReviews(Array.isArray(res.data) ? res.data : []))
+  .catch(() => setReviews([]))
+  .finally(() => setLoading(false));
+
   }, []);
 
   const scroll = (dir) => {

@@ -53,7 +53,7 @@ export const submitReview = (data) => API.post('/reviews', data);
 export const getSettings    = ()     => API.get('/settings');
 export const updateSettings = (data) => API.put('/settings/admin/update', data);
 export const uploadQRCode   = (data) => API.post('/settings/admin/upload-qr', data);
-
+export const getRecentReviews = (limit = 12) => API.get(`/reviews/recent?limit=${limit}`);
 // Auth
 export const adminLogin     = (data) => API.post('/auth/login', data);
 export const changePassword = (data) => API.put('/auth/change-password', data);
