@@ -13,9 +13,10 @@ exports.getProductReviews = async (req, res) => {
       [productId]
     );
 
+    // Hide full phone — only show first 4 digits like "98XX XXXXXX"
     const safeReviews = reviews.map(r => ({
       ...r,
-      customer_phone: undefined,
+      customer_phone: undefined, // remove raw phone
       phone_hint: r.phone_hint + 'XXXXXX',
     }));
 
@@ -55,6 +56,7 @@ exports.getRecentReviews = async (req, res) => {
 };
 
 // ── PUBLIC: Check if a phone can review a product ─────────────
+// Returns: { canReview, alreadyReviewed, deliveredOrderId }
 exports.checkCanReview = async (req, res) => {
   try {
     const { phone, productId } = req.query;
@@ -62,6 +64,7 @@ exports.checkCanReview = async (req, res) => {
       return res.status(400).json({ message: 'phone and productId are required' });
     }
 
+    // 1. Find a delivered order from this phone containing this product
     const [orders] = await pool.query(
       `SELECT o.id FROM orders o
        JOIN order_items oi ON oi.order_id = o.id
@@ -78,6 +81,7 @@ exports.checkCanReview = async (req, res) => {
 
     const deliveredOrderId = orders[0].id;
 
+    // 2. Check if they already reviewed this product
     const [existing] = await pool.query(
       `SELECT id FROM reviews WHERE customer_phone = ? AND product_id = ?`,
       [phone.trim(), productId]
@@ -97,116 +101,59 @@ exports.checkCanReview = async (req, res) => {
 // ── PUBLIC: Submit a review ───────────────────────────────────
 exports.submitReview = async (req, res) => {
   try {
-    let { product_id, product_name, order_id, customer_phone, customer_name, rating, title, body } = req.body;
+    let { product_id, product_name, customer_phone, customer_name, rating, title, body } = req.body;
 
-    // Validate basic required fields first
-    if (!customer_phone || !rating) {
-      return res.status(400).json({ message: 'customer_phone and rating are required' });
+    if (!product_id && product_name) {
+  const [found] = await pool.query(
+    'SELECT id FROM products WHERE name = ? LIMIT 1',
+    [product_name.trim()]
+  );
+  if (found.length > 0) product_id = found[0].id;
+}
+
+    // Validate required fields
+    if (!product_id || !customer_phone || !rating) {
+      return res.status(400).json({ message: 'product_id, customer_phone, and rating are required' });
     }
 
     if (rating < 1 || rating > 5) {
       return res.status(400).json({ message: 'Rating must be between 1 and 5' });
     }
 
-    // Step 1: Try to resolve product_id by name if missing
-    if (!product_id && product_name) {
-      const [found] = await pool.query(
-        'SELECT id FROM products WHERE name = ? LIMIT 1',
-        [product_name.trim()]
-      );
-      if (found.length > 0) product_id = found[0].id;
+    // 1. Verify: delivered order exists for this phone + product
+    const [orders] = await pool.query(
+      `SELECT o.id FROM orders o
+       JOIN order_items oi ON oi.order_id = o.id
+       WHERE o.customer_phone = ?
+         AND oi.product_id = ?
+         AND o.status = 'Delivered'
+       LIMIT 1`,
+      [customer_phone.trim(), product_id]
+    );
+
+    if (orders.length === 0) {
+      return res.status(403).json({
+        message: 'You can only review products from delivered orders',
+      });
     }
 
-    // Step 2: Find a valid delivered order for this customer
-    let resolvedOrderId = order_id || null;
+    // 2. Prevent duplicate reviews
+    const [existing] = await pool.query(
+      `SELECT id FROM reviews WHERE customer_phone = ? AND product_id = ?`,
+      [customer_phone.trim(), product_id]
+    );
 
-    if (product_id) {
-      // Normal flow: find delivered order with this product
-      const [orders] = await pool.query(
-        `SELECT o.id FROM orders o
-         JOIN order_items oi ON oi.order_id = o.id
-         WHERE o.customer_phone = ?
-           AND oi.product_id = ?
-           AND o.status = 'Delivered'
-         LIMIT 1`,
-        [customer_phone.trim(), product_id]
-      );
-
-      if (orders.length === 0) {
-        return res.status(403).json({
-          message: 'You can only review products from delivered orders',
-        });
-      }
-
-      resolvedOrderId = orders[0].id;
-
-      // Check duplicate
-      const [existing] = await pool.query(
-        `SELECT id FROM reviews WHERE customer_phone = ? AND product_id = ?`,
-        [customer_phone.trim(), product_id]
-      );
-      if (existing.length > 0) {
-        return res.status(400).json({ message: 'You have already reviewed this product' });
-      }
-
-    } else if (order_id) {
-      // Fallback: product was deleted, verify using order_id directly
-      const [orders] = await pool.query(
-        `SELECT id FROM orders
-         WHERE id = ? AND customer_phone = ? AND status = 'Delivered'
-         LIMIT 1`,
-        [order_id, customer_phone.trim()]
-      );
-
-      if (orders.length === 0) {
-        return res.status(403).json({
-          message: 'You can only review products from delivered orders',
-        });
-      }
-
-      resolvedOrderId = orders[0].id;
-
-    } else {
-      return res.status(400).json({ message: 'product_id or order_id is required' });
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'You have already reviewed this product' });
     }
 
-    // Step 3: Insert review
-    // Use a placeholder product_id of 0 if product was deleted
-    // OR insert with NULL product_id by adjusting the query
-    if (!product_id) {
-      // Product deleted — store review linked to order only
-      const [result] = await pool.query(
-        `INSERT INTO reviews (product_id, order_id, customer_phone, customer_name, rating, title, body)
-         SELECT p.id, ?, ?, ?, ?, ?, ?
-         FROM order_items oi
-         JOIN products p ON p.id = oi.product_id
-         WHERE oi.order_id = ?
-         LIMIT 1`,
-        [
-          resolvedOrderId,
-          customer_phone.trim(),
-          customer_name?.trim() || 'Anonymous',
-          rating,
-          title?.trim() || '',
-          body?.trim() || '',
-          resolvedOrderId,
-        ]
-      );
-
-      if (result.affectedRows === 0) {
-        return res.status(400).json({ message: 'Could not find product for this order' });
-      }
-
-      return res.status(201).json({ message: 'Review submitted successfully', id: result.insertId });
-    }
-
-    // Normal insert
+    // 3. Insert review
     const [result] = await pool.query(
       `INSERT INTO reviews (product_id, order_id, customer_phone, customer_name, rating, title, body)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         product_id,
-        resolvedOrderId,
+        orders[0].id,
         customer_phone.trim(),
         customer_name?.trim() || 'Anonymous',
         rating,
