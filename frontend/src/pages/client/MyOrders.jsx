@@ -530,6 +530,7 @@ const ReviewModal = ({ item, phone, orderId, customerName, onClose, onSubmitted 
     onClose();
   } catch (err) {
     toast.error(err.response?.data?.message || err.message || 'Failed to submit review');
+    console.log('API baseURL:', API.defaults.baseURL);
   } finally {
     setSubmitting(false);
   }
