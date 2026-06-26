@@ -7,12 +7,18 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-const generateOrderNumber = () => {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substr(2, 4).toUpperCase();
-  return `ORD-${timestamp}-${random}`;
-};
+const generateOrderNumber = async (customerName) => {
+  const prefix = customerName
+    .replace(/[^a-zA-Z]/g, '')
+    .substring(0, 5)
+    .toUpperCase();
 
+  // Global counter across ALL orders
+  const [rows] = await pool.query('SELECT COUNT(*) AS cnt FROM orders');
+  const next = (rows[0].cnt + 1).toString().padStart(5, '0');
+
+  return `${prefix}${next}`;
+};
 // ─────────────────────────────────────────────────────────────
 // PUBLIC - Place Order (ONLINE only)
 // ─────────────────────────────────────────────────────────────
@@ -20,15 +26,51 @@ exports.placeOrder = async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-
-    const { customer_name, customer_phone, customer_address, items, notes } = req.body;
-
+const { customer_name, customer_phone, customer_address, items, notes } = req.body;
     if (!items || items.length === 0) {
-      return res.status(400).json({ message: 'No items in order' });
-    }
+  return res.status(400).json({ message: 'No items in order' });
+}
 
-    let total_amount = 0;
-    const orderItems = [];
+
+const [existing] = await conn.query(
+  `SELECT * FROM orders WHERE customer_phone = ? AND status = 'Pending' 
+   ORDER BY created_at DESC LIMIT 1`,
+  [customer_phone]
+);
+
+if (existing.length > 0) {
+  const existingOrder = existing[0];
+  const rpOrder = await razorpay.orders.create({
+    amount: Math.round(existingOrder.total_amount * 100),
+    currency: 'INR',
+    receipt: existingOrder.order_number,
+  });
+  await pool.query('UPDATE orders SET razorpay_order_id = ? WHERE id = ?', [rpOrder.id, existingOrder.id]);
+  await conn.commit();
+
+  return res.status(200).json({
+    message: 'Resuming existing pending order.',
+    order_number: existingOrder.order_number,
+    order_id: existingOrder.id,
+    total_amount: existingOrder.total_amount,
+    payment_method: 'ONLINE',
+    razorpay: {
+      key_id: process.env.RAZORPAY_KEY_ID,
+      order_id: rpOrder.id,
+      amount: rpOrder.amount,
+      currency: rpOrder.currency,
+      name: process.env.SHOP_NAME || "Salwar Butterfly",
+      description: `Order ${existingOrder.order_number}`,
+      prefill: { name: customer_name, contact: customer_phone },
+      theme: { color: '#e91e8c' },
+    },
+  });
+}
+
+
+let total_amount = 0;
+const orderItems = [];
+
 
     for (const item of items) {
       const [products] = await conn.query(
@@ -72,7 +114,7 @@ exports.placeOrder = async (req, res) => {
       });
     }
 
-    const order_number = generateOrderNumber();
+    const order_number = await generateOrderNumber(customer_name);
 
     const [orderResult] = await conn.query(
       `INSERT INTO orders
