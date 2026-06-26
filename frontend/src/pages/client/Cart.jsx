@@ -53,6 +53,7 @@ const styles = `
   }
 
   .wc-cart-item-img {
+  cursor: pointer;
     width: 80px; height: 100px; border-radius: 8px;
     overflow: hidden; background: var(--wc-pink-pale); flex-shrink: 0;
     border: 1px solid var(--wc-border);
@@ -215,13 +216,15 @@ const Cart = () => {
           {cart.map(item => (
             <div key={`${item.id}-${item.size}`} className="wc-cart-item">
               <div className="wc-cart-item-img">
-                {item.image_url
-                  ? <img src={item.image_url} alt={item.name} />
-                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Heart size={24} color="#f0d6e8" />
-                    </div>
-                }
-              </div>
+  <Link to={`/products/${item.id}`}>
+    {item.image_url
+      ? <img src={item.image_url} alt={item.name} />
+      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Heart size={24} color="#f0d6e8" />
+        </div>
+    }
+  </Link>
+</div>
 
               <div className="wc-cart-item-info">
                 <div className="wc-cart-item-name">{item.name}</div>
