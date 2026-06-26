@@ -271,7 +271,7 @@ const RecentPurchasePopup = () => {
       <style>{popupStyles}</style>
       <div className="rpp-wrap">
         <div className={`rpp-card ${leaving ? 'leaving' : ''}`}>
-          <div  className="rpp-inner" onClick={() => navigate(`/product/${item.product_id}`)}style={{ cursor: 'pointer' }}>
+          <div  className="rpp-inner" onClick={() => navigate(`/products/${item.product_id}`)}style={{ cursor: 'pointer' }}>
             {/* Product image */}
             <div className="rpp-img">
               {item.product_image
