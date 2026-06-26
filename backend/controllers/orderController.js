@@ -255,15 +255,16 @@ exports.getRecentPurchases = async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT 
-          o.customer_name,
-          oi.product_name,
-          oi.product_image,
-          o.customer_address,
-          o.created_at
-       FROM order_items oi
-       JOIN orders o ON oi.order_id = o.id
-       ORDER BY o.created_at DESC
-       LIMIT 20`
+    o.customer_name,
+    oi.product_id,
+    oi.product_name,
+    oi.product_image,
+    o.customer_address,
+    o.created_at
+ FROM order_items oi
+ JOIN orders o ON oi.order_id = o.id
+ ORDER BY o.created_at DESC
+ LIMIT 20`
     );
     res.json(rows);
   } catch (err) {
