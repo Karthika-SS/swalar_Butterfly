@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-
+import { useNavigate } from 'react-router-dom';
 // ── Fetches recent delivered/confirmed orders for social proof ─
 const fetchRecentPurchases = async () => {
   try {
@@ -181,6 +181,7 @@ const SHOW_DURATION = 10000;
 const INTERVAL     = 60000;
 
 const RecentPurchasePopup = () => {
+  const navigate = useNavigate();
   const [purchases, setPurchases]   = useState([]);
   const [current, setCurrent]       = useState(null);   // { item, timeStr }
   const [leaving, setLeaving]       = useState(false);
@@ -199,7 +200,7 @@ const RecentPurchasePopup = () => {
       setPurchases(valid);
     });
   }, []);
-
+  
   // Start cycling once we have data
   useEffect(() => {
     if (purchases.length === 0) return;
@@ -270,7 +271,7 @@ const RecentPurchasePopup = () => {
       <style>{popupStyles}</style>
       <div className="rpp-wrap">
         <div className={`rpp-card ${leaving ? 'leaving' : ''}`}>
-          <div className="rpp-inner">
+          <div  className="rpp-inner" onClick={() => navigate(`/product/${item.product_id}`)}style={{ cursor: 'pointer' }}>
             {/* Product image */}
             <div className="rpp-img">
               {item.product_image
