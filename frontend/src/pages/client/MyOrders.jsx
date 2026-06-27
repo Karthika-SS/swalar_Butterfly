@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Search, Package, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import { getOrdersByPhone , submitReview  } from '../../utils/api';
 import toast from 'react-hot-toast';
@@ -753,12 +754,14 @@ const MyOrders = () => {
                                   <div key={item.id}>
                                     <div className="uz-order-item-row">
                                       <div className="uz-order-item-img">
-                                        {item.product_image ? (
-                                          <img src={item.product_image} alt={item.product_name} />
-                                        ) : (
-                                          <Package size={18} color="#d4af37" />
-                                        )}
-                                      </div>
+  {item.product_image ? (
+    <Link to={`/products/${item.product_id}`}>
+      <img src={item.product_image} alt={item.product_name} style={{ cursor: 'pointer' }} />
+    </Link>
+  ) : (
+    <Package size={18} color="#d4af37" />
+  )}
+</div>
                                       <span className="uz-oi-name">{item.product_name}</span>
                                       {item.size && (
                                         <span className="uz-oi-size">{item.size}</span>
