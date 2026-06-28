@@ -568,7 +568,7 @@ const Checkout = () => {
                     placeholder="First name" required />
                 </div>
                 <div className="uz-checkout-field">
-                  <input name="last_name" placeholder="Last name (optional)" />
+                  <input name="last_name" placeholder="Door No" />
                 </div>
               </div>
 
@@ -577,12 +577,12 @@ const Checkout = () => {
                   placeholder="Address" required />
               </div>
               <div className="uz-checkout-field">
-                <input name="apartment" placeholder="Apartment, suite, etc. (optional)" />
+                <input name="apartment" placeholder="Street Name " />
               </div>
 
               <div className="uz-checkout-row">
                 <div className="uz-checkout-field">
-                  <input name="city" value={form.city} onChange={handleChange} placeholder="City" required />
+                  <input name="city" value={form.city} onChange={handleChange} placeholder="District" required />
                 </div>
                 <div className="uz-checkout-field">
                   <select name="state" value={form.state} onChange={handleChange}>
