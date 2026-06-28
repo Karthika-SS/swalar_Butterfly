@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Search, Trash2 } from 'lucide-react';
 import { adminGetOrders, updateOrderStatus, deleteOrder } from '../../utils/api';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 
@@ -746,7 +747,10 @@ const OrderManagement = () => {
                           <div key={item.id} className="admin-item-row">
                             <div className="admin-item-img">
                               {item.product_image
-                                ? <img src={item.product_image} alt={item.product_name} />
+                                ?
+                                <Link to={`/products/${item.product_id}`}>
+                                <img src={item.product_image} alt={item.product_name} />
+                                </Link> 
                                 : <div className="admin-no-img" />}
                             </div>
                             <span className="ai-name">{item.product_name}</span>
