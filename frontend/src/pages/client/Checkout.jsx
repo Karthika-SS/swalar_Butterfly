@@ -374,6 +374,8 @@ const Checkout = () => {
   const [form, setForm] = useState({
     customer_name: '',
     customer_phone: '',
+    door_no: '',        // ← ADD
+    street_name: '',
     customer_address: '',
     city: '',
     state: 'Tamil Nadu',
@@ -405,7 +407,13 @@ const Checkout = () => {
     setLoading(true);
 
     try {
-      const fullAddress = `${form.customer_address}, ${form.city}, ${form.state} - ${form.pincode}`;
+      const fullAddress = [
+  form.door_no,
+  form.customer_address,
+  form.street_name,
+  form.city,
+  `${form.state} - ${form.pincode}`
+].filter(Boolean).join(', ');
       const orderPayload = {
         customer_name: form.customer_name,
         customer_phone: form.customer_phone,
@@ -568,7 +576,7 @@ const Checkout = () => {
                     placeholder="First name" required />
                 </div>
                 <div className="uz-checkout-field">
-                  <input name="last_name" placeholder="Door No" />
+                  <input name="door_no" value={form.door_no} onChange={handleChange} placeholder="Door No" />
                 </div>
               </div>
 
@@ -577,7 +585,7 @@ const Checkout = () => {
                   placeholder="Address" required />
               </div>
               <div className="uz-checkout-field">
-                <input name="apartment" placeholder="Street Name " />
+                <input name="street_name" value={form.street_name} onChange={handleChange} placeholder="Street Name " />
               </div>
 
               <div className="uz-checkout-row">
