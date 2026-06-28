@@ -158,7 +158,6 @@ const styles = `
     font-style: italic;
   }
 
-  /* Payment options */
   .uz-payment-opts {
     display: flex; flex-direction: column; gap: 0;
     border: 1px solid #ede7da; border-radius: 2px;
@@ -283,7 +282,6 @@ const styles = `
 
   .uz-checkout-footer a:hover { color: #d4af37; text-decoration: underline; }
 
-  /* Right summary panel */
   .uz-checkout-summary-panel {
     background: #f7f3ed;
     border-left: 1px solid #ede7da;
@@ -338,7 +336,7 @@ const styles = `
   }
 `;
 
-// ── Load Razorpay checkout.js script once ─────────────────────
+// ── Load Razorpay script once ──────────────────────────────────
 const loadRazorpayScript = () =>
   new Promise((resolve) => {
     if (document.getElementById('razorpay-script')) return resolve(true);
@@ -350,7 +348,7 @@ const loadRazorpayScript = () =>
     document.body.appendChild(s);
   });
 
-// ── API helper: verify payment on our backend ─────────────────
+// ── Verify payment on backend ──────────────────────────────────
 const verifyPaymentOnBackend = async (payload) => {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
   const res = await fetch(`${API_URL}/orders/verify-payment`, {
@@ -368,13 +366,18 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
 
-  // ── Prevent duplicate order submissions ──────────────────────
+  // ── Prevent duplicate submissions ─────────────────────────────
   const submittedRef = useRef(false);
+
+  // ── Store pending order data between placeOrder & verifyPayment
+  // This is the key addition for Option 2 — holds cart+customer
+  // data in memory so verifyPayment can save it to DB
+  const pendingOrderDataRef = useRef(null);
 
   const [form, setForm] = useState({
     customer_name: '',
     customer_phone: '',
-    door_no: '',        // ← ADD
+    door_no: '',
     street_name: '',
     customer_address: '',
     city: '',
@@ -394,7 +397,6 @@ const Checkout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ── Block if already submitted ───────────────────────────
     if (submittedRef.current) return;
 
     if (!form.customer_name.trim() || !form.customer_phone.trim() || !form.customer_address.trim()) {
@@ -402,18 +404,18 @@ const Checkout = () => {
       return;
     }
 
-    // ── Lock immediately to prevent double clicks ────────────
     submittedRef.current = true;
     setLoading(true);
 
     try {
       const fullAddress = [
-  form.door_no,
-  form.customer_address,
-  form.street_name,
-  form.city,
-  `${form.state} - ${form.pincode}`
-].filter(Boolean).join(', ');
+        form.door_no,
+        form.customer_address,
+        form.street_name,
+        form.city,
+        `${form.state} - ${form.pincode}`,
+      ].filter(Boolean).join(', ');
+
       const orderPayload = {
         customer_name: form.customer_name,
         customer_phone: form.customer_phone,
@@ -423,9 +425,14 @@ const Checkout = () => {
         items: cart.map(i => ({ product_id: i.id, quantity: i.quantity, size: i.size || null })),
       };
 
+      // ── Call placeOrder — backend validates stock & creates
+      //    Razorpay order but does NOT insert into DB yet ─────────
       const res = await placeOrder(orderPayload);
       const data = res.data;
 
+      // ── COD path: backend still inserts immediately for COD ───
+      // (You can keep COD inserting in DB directly since no payment
+      //  risk. If you removed COD from backend, handle here too.)
       if (form.payment_method === 'COD') {
         clearCart();
         navigate('/order-success', {
@@ -438,15 +445,23 @@ const Checkout = () => {
         return;
       }
 
+      // ── ONLINE path ───────────────────────────────────────────
+      // Store pending_order_data from backend response in ref.
+      // This holds: customer_name, customer_phone, customer_address,
+      // items (with product_name, product_image, price etc.),
+      // total_amount, notes — everything verifyPayment needs to
+      // insert the order into DB after payment succeeds.
+      pendingOrderDataRef.current = data.pending_order_data;
+
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
         toast.error('Payment gateway failed to load. Please try again.');
-        submittedRef.current = false; // ── unlock on script failure
+        submittedRef.current = false;
         setLoading(false);
         return;
       }
 
-      const { razorpay, order_id: internalOrderId } = data;
+      const { razorpay } = data;
 
       const rzp = new window.Razorpay({
         key: razorpay.key_id,
@@ -462,33 +477,38 @@ const Checkout = () => {
           try {
             toast.loading('Verifying payment…', { id: 'verify' });
 
+            // ── Send Razorpay IDs + full order data to backend.
+            //    Backend will now INSERT order into DB as Confirmed
+            //    and deduct stock — only on successful payment. ───
             const verifyRes = await verifyPaymentOnBackend({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              order_id: internalOrderId,
+              // Spread all order data saved before payment started
+              ...pendingOrderDataRef.current,
             });
 
             toast.dismiss('verify');
 
-            if (verifyRes.message && verifyRes.order_number) {
+            if (verifyRes.order_number) {
               clearCart();
+              pendingOrderDataRef.current = null; // cleanup
               navigate('/order-success', {
                 state: {
                   order_number: verifyRes.order_number,
                   total_amount: verifyRes.total_amount ?? data.total_amount,
                   payment_method: 'ONLINE',
+                  whatsapp_url: verifyRes.whatsapp_url,
                 },
               });
             } else {
-              // ── Payment verification failed — unlock so user can retry
+              // Verification failed — unlock so user can retry
               submittedRef.current = false;
               setLoading(false);
               toast.error(verifyRes.message || 'Payment verification failed. Contact support.');
             }
           } catch {
             toast.dismiss('verify');
-            // ── Unlock on verification error
             submittedRef.current = false;
             setLoading(false);
             toast.error('Verification error. Please contact support with your payment ID.');
@@ -497,29 +517,33 @@ const Checkout = () => {
 
         modal: {
           ondismiss: () => {
-            // ── User closed payment modal — unlock so they can try again
+            // ── User closed Razorpay popup.
+            //    Since order is NOT in DB yet, nothing to clean up.
+            //    Just unlock so they can try again. ───────────────
             submittedRef.current = false;
             setLoading(false);
-            toast('Payment cancelled. Your order is saved – complete payment to confirm.', {
+            pendingOrderDataRef.current = null;
+            toast('Payment cancelled. You can try again.', {
               icon: '⚠️',
-              duration: 5000,
+              duration: 4000,
             });
           },
         },
       });
 
       rzp.on('payment.failed', (response) => {
-        // ── Unlock on payment failure so user can retry
+        // Payment failed — no DB record was created, just unlock ─
         submittedRef.current = false;
         setLoading(false);
+        pendingOrderDataRef.current = null;
         toast.error(`Payment failed: ${response.error.description}`);
       });
 
       rzp.open();
     } catch (err) {
-      // ── Unlock on any unexpected error
       submittedRef.current = false;
       setLoading(false);
+      pendingOrderDataRef.current = null;
       toast.error(err.response?.data?.message || 'Failed to place order. Try again.');
     }
   };
@@ -585,7 +609,7 @@ const Checkout = () => {
                   placeholder="Address" required />
               </div>
               <div className="uz-checkout-field">
-                <input name="street_name" value={form.street_name} onChange={handleChange} placeholder="Street Name " />
+                <input name="street_name" value={form.street_name} onChange={handleChange} placeholder="Street Name" />
               </div>
 
               <div className="uz-checkout-row">
@@ -594,8 +618,8 @@ const Checkout = () => {
                 </div>
                 <div className="uz-checkout-field">
                   <select name="state" value={form.state} onChange={handleChange}>
-                    {['Tamil Nadu','Karnataka','Kerala','Andhra Pradesh','Telangana','Maharashtra',
-                      'Delhi','Gujarat','Rajasthan','West Bengal','Other'].map(s => (
+                    {['Tamil Nadu', 'Karnataka', 'Kerala', 'Andhra Pradesh', 'Telangana', 'Maharashtra',
+                      'Delhi', 'Gujarat', 'Rajasthan', 'West Bengal', 'Other'].map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>

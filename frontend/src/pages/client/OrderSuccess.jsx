@@ -181,15 +181,20 @@ export const OrderSuccess = () => {
               <span>Payment</span>
               <strong>{state.payment_method === 'COD' ? 'Cash on Delivery' : 'Online Payment'}</strong>
             </div>
-            <div className="wc-success-row">
-              <span>Status</span>
-              <span style={{
-                background: '#fff8e1', color: '#b8860b',
-                padding: '3px 14px', borderRadius: 50, fontSize: '0.68rem',
-                fontFamily: "'Poppins', sans-serif", fontWeight: 700,
-                border: '1px solid #f5e08a', letterSpacing: '0.5px', textTransform: 'uppercase'
-              }}>Pending</span>
-            </div>
+           
+<div className="wc-success-row">
+  <span>Status</span>
+  <span style={{
+    background: state.payment_method === 'COD' ? '#fff8e1' : '#e8f5e9',
+    color: state.payment_method === 'COD' ? '#b8860b' : '#2e7d32',
+    padding: '3px 14px', borderRadius: 50, fontSize: '0.68rem',
+    fontFamily: "'Poppins', sans-serif", fontWeight: 700,
+    border: state.payment_method === 'COD' ? '1px solid #f5e08a' : '1px solid #a5d6a7',
+    letterSpacing: '0.5px', textTransform: 'uppercase'
+  }}>
+    {state.payment_method === 'COD' ? 'Pending' : 'Confirmed'}
+  </span>
+</div>
           </div>
 
           <div className="wc-success-note">
