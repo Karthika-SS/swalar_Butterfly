@@ -543,8 +543,8 @@ const OrderManagement = () => {
       `Thank you for ordering with *Salwar Butterfly* 🛍️\n\n` +
       `*Order No:* ${order.order_number}\n\n` +
       `Your order has been placed successfully.\n` +
-      `You can track your order using your mobile number.\n\n` +
-      `For any queries, contact us.\n\n` +
+      `For tracking contact us here.\n\n` +
+      `Delivery time 10 working days.\n\n` +
       `💕 *Team Salwar Butterfly*`;
 
     const encodedMessage = encodeURIComponent(message);
