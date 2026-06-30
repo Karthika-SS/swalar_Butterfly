@@ -34,6 +34,7 @@ exports.updateSettings = async (req, res) => {
       'feature2_title', 'feature2_desc',
       'feature3_title', 'feature3_desc',
       'feature4_title', 'feature4_desc',
+      'show_recent_purchase_popup', 
     ];
 
     for (const key of allowedKeys) {

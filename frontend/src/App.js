@@ -155,19 +155,11 @@ const footerStyles = `
   }
 `;
 
-const Footer = () => {
-  const [settings, setSettings] = useState({});
+const Footer = ({ shopSettings }) => {
   const [policyOpen, setPolicyOpen] = useState(false);
   const [sizeOpen, setSizeOpen] = useState(false);
 
-  useEffect(() => {
-    getSettings()
-      .then(r => {
-        const d = r.data?.shop_name !== undefined ? r.data : (r.data?.data || r.data || {});
-        setSettings(d);
-      })
-      .catch(() => {});
-  }, []);
+  const settings = shopSettings || {};
 
   const shopName    = settings.shop_name    || 'MyShop';
   const shopLogo    = settings.shop_logo_url || '';
@@ -278,16 +270,39 @@ const Footer = () => {
   );
 };
 
-// Client layout wrapper — RecentPurchasePopup and WhatsAppButton only render for client pages
-const ClientLayout = ({ children }) => (
-  <>
-    <RecentPurchasePopup />
-    <Navbar />
-    <main>{children}</main>
-    <Footer />
-    <WhatsAppButton />
-  </>
-);
+// Helper to coerce backend booleans (which may come back as 'true'/'false' strings) to real booleans.
+const toBool = (val, fallback = true) => {
+  if (val === undefined || val === null || val === '') return fallback;
+  if (typeof val === 'boolean') return val;
+  return val === 'true' || val === '1' || val === 1;
+};
+
+// Client layout wrapper — RecentPurchasePopup and WhatsAppButton only render for client pages.
+// Shop settings are fetched once here and passed down to Footer + popup, avoiding duplicate fetches.
+const ClientLayout = ({ children }) => {
+  const [shopSettings, setShopSettings] = useState(null);
+
+  useEffect(() => {
+    getSettings()
+      .then(r => {
+        const d = r.data?.shop_name !== undefined ? r.data : (r.data?.data || r.data || {});
+        setShopSettings(d);
+      })
+      .catch(() => setShopSettings({}));
+  }, []);
+
+  const showPopup = toBool(shopSettings?.show_recent_purchase_popup, true);
+
+  return (
+    <>
+      {showPopup && <RecentPurchasePopup />}
+      <Navbar />
+      <main>{children}</main>
+      <Footer shopSettings={shopSettings} />
+      <WhatsAppButton />
+    </>
+  );
+};
 
 // Admin protected route
 const AdminRoute = ({ children }) => {

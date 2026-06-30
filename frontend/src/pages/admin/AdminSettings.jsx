@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Save, Upload, Eye, EyeOff, QrCode, Store, Lock,
   Image, Plus, Trash2, ChevronDown, ChevronUp, Settings2,
-  Palette, Star
+  Palette, Star, Bell
 } from 'lucide-react';
 import { getSettings, updateSettings, uploadQRCode, changePassword } from '../../utils/api';
 import toast from 'react-hot-toast';
@@ -371,6 +371,28 @@ const styles = `
   color: var(--text-muted);
 }
 
+.toggle-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  width: fit-content;
+  user-select: none;
+}
+
+.toggle-switch-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.toggle-switch-label {
+  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
 @media (max-width: 900px) {
   .sticky-save-bar { left: 0; }
   .section-body { padding: 0 16px 20px; }
@@ -397,6 +419,13 @@ const uploadToCloudinary = async (file) => {
   });
   if (!res.ok) throw new Error('Upload failed');
   return res.json();
+};
+
+// Coerce settings values that may arrive as 'true'/'false' strings (or real booleans) from the backend.
+const toBool = (val, fallback = true) => {
+  if (val === undefined || val === null || val === '') return fallback;
+  if (typeof val === 'boolean') return val;
+  return val === 'true' || val === '1' || val === 1;
 };
 
 const Section = ({ icon, title, children, defaultOpen = true }) => {
@@ -509,6 +538,7 @@ const AdminSettings = () => {
     feature3_title: '', feature3_desc: '',
     feature4_title: '', feature4_desc: '',
     banner_slides: '[]',
+    show_recent_purchase_popup: true,
   });
 
   const [loading, setLoading] = useState(true);
@@ -529,7 +559,11 @@ const AdminSettings = () => {
   useEffect(() => {
     getSettings()
       .then(r => {
-        setSettings(prev => ({ ...prev, ...r.data }));
+        setSettings(prev => ({
+          ...prev,
+          ...r.data,
+          show_recent_purchase_popup: toBool(r.data.show_recent_purchase_popup, true),
+        }));
         setQrPreview(r.data.qr_image_url || '');
         setLogoPreview(r.data.shop_logo_url || '');
         try { setBannerSlides(JSON.parse(r.data.banner_slides || '[]')); } catch { setBannerSlides([]); }
@@ -543,7 +577,11 @@ const AdminSettings = () => {
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
-      await updateSettings({ ...settings, banner_slides: JSON.stringify(bannerSlides) });
+      await updateSettings({
+        ...settings,
+        banner_slides: JSON.stringify(bannerSlides),
+        show_recent_purchase_popup: settings.show_recent_purchase_popup ? 'true' : 'false',
+      });
       toast.success('Settings saved!');
     } catch {
       toast.error('Failed to save settings');
@@ -757,6 +795,23 @@ const AdminSettings = () => {
                 </div>
               ))}
             </div>
+          </Section>
+
+          <Section icon={<Bell size={20} />} title="Recent Purchase Popup" defaultOpen={false}>
+            <p className="section-desc">
+              Shows a small "Someone just bought this" popup on the storefront to build trust and urgency.
+              Turn this off if you don't want it appearing for customers.
+            </p>
+            <label className="toggle-switch-row">
+              <input
+                type="checkbox"
+                checked={!!settings.show_recent_purchase_popup}
+                onChange={e => set('show_recent_purchase_popup', e.target.checked)}
+              />
+              <span className="toggle-switch-label">
+                {settings.show_recent_purchase_popup ? 'Enabled — popup is visible to customers' : 'Disabled — popup is hidden'}
+              </span>
+            </label>
           </Section>
 
           <Section icon={<QrCode size={20} />} title="UPI QR Code">
