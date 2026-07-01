@@ -47,5 +47,16 @@ const categoryStorage = new CloudinaryStorage({
 });
 const uploadCategory = multer({ storage: categoryStorage });
 
+const testimonialStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'shop/testimonials',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }],
+  },
+});
+const uploadTestimonial = multer({ storage: testimonialStorage });
 
-module.exports = { cloudinary,uploadProductMultiple , uploadQR, uploadCategory };
+
+
+module.exports = { cloudinary,uploadProductMultiple , uploadQR, uploadCategory , uploadTestimonial };

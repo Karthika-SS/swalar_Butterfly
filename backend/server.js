@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+
 const { initDB } = require('./config/db'); // ← adjust path if your db.js is elsewhere
 require('dotenv').config();
 
@@ -22,6 +23,7 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/orders',   require('./routes/orders'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/testimonials', require('./routes/testimonials'));
 app.get('/api/health', (req, res) =>
   res.json({ status: 'ok', timestamp: new Date() })
 );

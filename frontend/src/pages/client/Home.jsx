@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronLeft, ChevronRight, Truck, Shield, RefreshCw, Phone, Heart, Sparkles, Star } from 'lucide-react';
 import ProductCard from '../../components/ProductCard';
 import { getProducts, getCategories, getSettings, getRecentReviews } from '../../utils/api';
+import TestimonialRow from '../../components/TestimonialRow';
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -1059,7 +1060,7 @@ const Home = () => {
 
         {/* ── CUSTOMER REVIEWS CAROUSEL ── */}
         <ReviewsCarousel />
-
+        <TestimonialRow />
         {/* ── INSTAGRAM CTA ── */}
         <div className="wc-insta-block">
           <p>Follow us for daily new launches every day & exclusive offers 💕</p>

@@ -107,6 +107,20 @@ async function initDB() {
         FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
       )
     `);
+  
+   // ── testimonials ─────────────────────────────────────────────────────────────
+await conn.query(`
+  CREATE TABLE IF NOT EXISTS testimonials (
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    customer_name    VARCHAR(255)  NOT NULL,
+    image_url        VARCHAR(500)  NOT NULL,
+    image_public_id  VARCHAR(255)  DEFAULT NULL,
+    caption          VARCHAR(500)  DEFAULT NULL,
+    display_order    INT           DEFAULT 0,
+    is_active        BOOLEAN       DEFAULT TRUE,
+    created_at       TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+  )
+`);
 
     // ── orders ──────────────────────────────────────────────────────────────
     await conn.query(`

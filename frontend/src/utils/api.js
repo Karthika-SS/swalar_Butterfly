@@ -48,13 +48,29 @@ export const adminGetOrders     = (params)       => API.get('/orders/admin/all',
 export const getDashboardStats  = ()             => API.get('/orders/admin/dashboard');
 export const updateOrderStatus  = (id, status)  => API.put(`/orders/admin/${id}/status`, { status });
 export const deleteOrder = (id) => API.delete(`/orders/admin/delete/${id}`);
-export const submitReview = (data) => API.post('/reviews', data);
+
+// Reviews
+export const submitReview      = (data)        => API.post('/reviews', data);
+export const getRecentReviews  = (limit = 12)   => API.get(`/reviews/recent?limit=${limit}`);
+export const getProductReviews = (productId)    => API.get(`/reviews/product/${productId}`);
+export const checkCanReview    = (phone, productId) => API.get(`/reviews/can-review`, { params: { phone, productId } });
+export const uploadReviewPhoto = (formData)     => API.post('/reviews/upload-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const adminGetReviews   = ()             => API.get('/reviews/admin/all');
+export const adminDeleteReview = (id)           => API.delete(`/reviews/admin/${id}`);
+
+// Testimonials (admin-uploaded customer photos, shown as a row on the homepage)
+export const getTestimonials        = ()         => API.get('/testimonials');
+export const adminGetTestimonials   = ()         => API.get('/testimonials/admin/all');
+export const uploadTestimonialImage = (formData) => API.post('/testimonials/admin/upload-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const createTestimonial      = (data)     => API.post('/testimonials/admin', data);
+export const updateTestimonial      = (id, data) => API.put(`/testimonials/admin/${id}`, data);
+export const deleteTestimonial      = (id)       => API.delete(`/testimonials/admin/${id}`);
+
 // Settings
 export const getSettings    = ()     => API.get('/settings');
 export const updateSettings = (data) => API.put('/settings/admin/update', data);
 export const uploadQRCode   = (data) => API.post('/settings/admin/upload-qr', data);
-export const getRecentReviews = (limit = 12) => API.get(`/reviews/recent?limit=${limit}`);
-export const getProductReviews = (productId) => API.get(`/reviews/product/${productId}`);
+
 // Auth
 export const adminLogin     = (data) => API.post('/auth/login', data);
 export const changePassword = (data) => API.put('/auth/change-password', data);

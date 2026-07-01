@@ -27,6 +27,8 @@ import OrderManagement from './pages/admin/OrderManagement';
 import AdminSettings from './pages/admin/AdminSettings';
 import CategoryManagement from './pages/admin/CategoryManagement';
 
+import TestimonialManagement from './pages/admin/TestimonialManagement';
+
 import './index.css';
 
 const footerStyles = `
@@ -348,6 +350,7 @@ function App() {
               <Route path="products" element={<ProductManagement />} />
               <Route path="orders" element={<OrderManagement />} />
               <Route path="categories" element={<CategoryManagement />} />
+              <Route path="photos" element={<TestimonialManagement />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>
 

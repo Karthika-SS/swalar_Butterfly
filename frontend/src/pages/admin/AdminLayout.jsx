@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, ShoppingBag, Settings,
-  LogOut, Menu, X, ChevronRight, Tag
+  LogOut, Menu, X, ChevronRight, Tag, MessageSquare, ImagePlus
 } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
 import { getSettings } from '../../utils/api';
@@ -203,11 +203,12 @@ const styles = `
 `;
 
 const navItems = [
-  { to: '/admin/dashboard',  icon: <LayoutDashboard size={19} />, label: 'Dashboard' },
-  { to: '/admin/products',   icon: <Package size={19} />,         label: 'Products' },
-  { to: '/admin/categories', icon: <Tag size={19} />,             label: 'Categories' },
-  { to: '/admin/orders',     icon: <ShoppingBag size={19} />,     label: 'Orders' },
-  { to: '/admin/settings',   icon: <Settings size={19} />,        label: 'Settings' },
+  { to: '/admin/dashboard',  icon: <LayoutDashboard size={19} />,    label: 'Dashboard' },
+  { to: '/admin/products',   icon: <Package size={19} />,            label: 'Products' },
+  { to: '/admin/categories', icon: <Tag size={19} />,                label: 'Categories' },
+  { to: '/admin/orders',     icon: <ShoppingBag size={19} />,        label: 'Orders' },
+  { to: '/admin/photos',     icon: <ImagePlus size={19} />,          label: 'Customer Photos' },
+  { to: '/admin/settings',   icon: <Settings size={19} />,           label: 'Settings' },
 ];
 
 const AdminLayout = () => {
