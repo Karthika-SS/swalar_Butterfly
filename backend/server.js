@@ -14,6 +14,15 @@ app.use(cors({
   ],
   credentials: true,
 }));
+
+// ⚠️ Webhook needs the RAW request body for signature verification.
+// This must be registered BEFORE express.json(), otherwise express.json()
+// consumes the request stream first and the webhook breaks.
+app.use(
+  '/api/orders/webhook/razorpay',
+  express.raw({ type: 'application/json' })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

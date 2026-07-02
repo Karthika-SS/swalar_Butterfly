@@ -16,7 +16,6 @@ const generateOrderNumber = async (customerName, conn) => {
     .substring(0, 5)
     .toUpperCase();
 
-  // Count only real (non-pending) orders so number stays clean
   const [rows] = await (conn || pool).query(
     `SELECT COUNT(*) AS cnt FROM orders WHERE status != 'Pending'`
   );
@@ -35,7 +34,6 @@ exports.placeOrder = async (req, res) => {
       return res.status(400).json({ message: 'No items in order' });
     }
 
-    // ── Validate stock & build order items in memory ──
     let total_amount = 0;
     const orderItems = [];
 
@@ -77,8 +75,6 @@ exports.placeOrder = async (req, res) => {
       });
     }
 
-    // ── Create Razorpay order (no DB insert yet) ──
-    // Use a temp receipt = phone + timestamp so Razorpay receipt is unique
     const tempReceipt = `${customer_phone}_${Date.now()}`;
 
     const rpOrder = await razorpay.orders.create({
@@ -90,18 +86,14 @@ exports.placeOrder = async (req, res) => {
         customer_phone,
         customer_address: customer_address || '',
         notes: notes || '',
-        // Store serialised items in Razorpay notes so verifyPayment can use them
-        // Razorpay notes values must be strings ≤ 256 chars; keep it compact
         items: JSON.stringify(orderItems).substring(0, 256),
       },
     });
 
-    // ── Return Razorpay payload to frontend ──
     return res.status(200).json({
       message: 'Stock validated. Complete payment to confirm order.',
       total_amount,
       payment_method: 'ONLINE',
-      // Pass all order data back so frontend can send it with verifyPayment
       pending_order_data: {
         customer_name,
         customer_phone,
@@ -137,16 +129,14 @@ exports.verifyPayment = async (req, res) => {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      // Full order data sent back from frontend
       customer_name,
       customer_phone,
       customer_address,
-      items,        // orderItems array from pending_order_data
+      items,
       notes,
       total_amount,
     } = req.body;
 
-    // ── 1. Verify Razorpay signature ──
     const body = `${razorpay_order_id}|${razorpay_payment_id}`;
     const expectedSig = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
@@ -157,7 +147,6 @@ exports.verifyPayment = async (req, res) => {
       return res.status(400).json({ message: 'Payment verification failed. Invalid signature.' });
     }
 
-    // ── 2. Idempotency: check if this Razorpay order was already saved ──
     const [existing] = await pool.query(
       'SELECT * FROM orders WHERE razorpay_order_id = ?',
       [razorpay_order_id]
@@ -172,10 +161,8 @@ exports.verifyPayment = async (req, res) => {
 
     await conn.beginTransaction();
 
-    // ── 3. Generate order number ──
     const order_number = await generateOrderNumber(customer_name, conn);
 
-    // ── 4. Insert order as Confirmed directly ──
     const [orderResult] = await conn.query(
       `INSERT INTO orders
          (order_number, customer_name, customer_phone, customer_address,
@@ -190,7 +177,6 @@ exports.verifyPayment = async (req, res) => {
     );
     const order_id = orderResult.insertId;
 
-    // ── 5. Insert order items & deduct stock ──
     for (const item of items) {
       await conn.query(
         `INSERT INTO order_items
@@ -200,7 +186,6 @@ exports.verifyPayment = async (req, res) => {
          item.price, item.quantity, item.size]
       );
 
-      // Deduct stock
       if (item.size) {
         await conn.query(
           'UPDATE product_size_stock SET stock = stock - ? WHERE product_id = ? AND size = ? AND stock >= ?',
@@ -220,7 +205,6 @@ exports.verifyPayment = async (req, res) => {
 
     await conn.commit();
 
-    // ── 6. WhatsApp confirmation URL ──
     const shopWhatsApp = process.env.SHOP_WHATSAPP || '';
     const waText = encodeURIComponent(
       `Hi! My payment is confirmed for order ${order_number}.\nTotal: Rs.${parseFloat(total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}\nPlease process my order. 🙏`
@@ -251,9 +235,13 @@ exports.razorpayWebhook = async (req, res) => {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
     if (webhookSecret) {
       const signature = req.headers['x-razorpay-signature'];
+      // ✅ FIX: verify against the ORIGINAL raw bytes (req.rawBody, set in
+      // routes/orders.js), not a re-stringified object. Razorpay signs the
+      // exact bytes it sent — JSON.stringify(req.body) does not reliably
+      // reproduce them, so the old check failed on every delivery.
       const digest = crypto
         .createHmac('sha256', webhookSecret)
-        .update(JSON.stringify(req.body))
+        .update(req.rawBody)
         .digest('hex');
       if (digest !== signature) return res.status(400).json({ message: 'Invalid webhook signature' });
     }
@@ -264,17 +252,14 @@ exports.razorpayWebhook = async (req, res) => {
     if (!rpOrderId) return res.status(200).json({ message: 'No order_id in payload, ignored' });
 
     if (event === 'payment.captured') {
-      // Check if order already saved (verifyPayment ran first)
       const [existing] = await pool.query(
         'SELECT * FROM orders WHERE razorpay_order_id = ?', [rpOrderId]
       );
 
       if (existing.length > 0) {
-        // Already confirmed via verifyPayment — nothing to do
         if (existing[0].status === 'Confirmed') {
           return res.status(200).json({ message: 'Already confirmed' });
         }
-        // Edge case: row exists but not confirmed — update it
         await pool.query(
           `UPDATE orders SET status = 'Confirmed', razorpay_payment_id = ? WHERE id = ?`,
           [payment.id, existing[0].id]
@@ -282,8 +267,6 @@ exports.razorpayWebhook = async (req, res) => {
         return res.status(200).json({ message: 'Order confirmed via webhook' });
       }
 
-      // Order not in DB yet (browser closed before verifyPayment)
-      // Fetch order details from Razorpay notes
       const rpOrderDetails = await razorpay.orders.fetch(rpOrderId);
       const n = rpOrderDetails.notes || {};
 
@@ -293,9 +276,6 @@ exports.razorpayWebhook = async (req, res) => {
       const notes = n.notes || null;
       const total_amount = rpOrderDetails.amount / 100;
 
-      // items were truncated in notes — we can only save a minimal order here
-      // Stock deduction won't happen; admin will need to handle manually
-      // For full reliability, rely on verifyPayment on the frontend
       await conn.beginTransaction();
 
       const order_number = await generateOrderNumber(customer_name, conn);
@@ -315,7 +295,6 @@ exports.razorpayWebhook = async (req, res) => {
     }
 
     if (event === 'payment.failed') {
-      // Nothing to update since order isn't in DB yet
       console.log(`[Webhook] Payment failed for Razorpay order ${rpOrderId} — no DB record to update`);
     }
 
@@ -394,7 +373,7 @@ exports.adminGetAllOrders = async (req, res) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
     const params = [];
-    let whereClause = "WHERE status != 'Pending'"; // never show pending
+    let whereClause = "WHERE status != 'Pending'";
 
     if (status && status !== 'Pending') {
       whereClause = 'WHERE status = ?';

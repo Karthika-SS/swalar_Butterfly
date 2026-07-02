@@ -4,19 +4,21 @@ const orderController = require('../controllers/orderController');
 const authMiddleware = require('../middleware/auth');
 
 // ── Razorpay Webhook ──────────────────────────────────────────
-// IMPORTANT: This must use express.raw() body parser, NOT express.json()
-// because Razorpay signature verification needs the raw body.
-// Mount this BEFORE any JSON body-parser middleware on this route.
-// In server.js / app.js add:
-//   app.use('/api/orders/webhook/razorpay', express.raw({ type: 'application/json' }));
-// then require this router.
+// The raw-body parsing for this route is already handled in server.js
+// (app.use('/api/orders/webhook/razorpay', express.raw(...)) runs before
+// this router is even reached). So req.body here arrives as a raw Buffer.
 router.post(
   '/webhook/razorpay',
-  express.raw({ type: 'application/json' }),
   (req, res, next) => {
-    // Parse raw body back to object for our handler
-    if (Buffer.isBuffer(req.body)) {
-      req.body = JSON.parse(req.body.toString());
+    // Keep the ORIGINAL raw bytes for signature verification.
+    // (Don't overwrite req.body before saving this — Razorpay signs the
+    // exact raw bytes, and re-serializing with JSON.stringify later would
+    // not reliably match them.)
+    req.rawBody = req.body; // Buffer
+    try {
+      req.body = JSON.parse(req.rawBody.toString('utf8'));
+    } catch (e) {
+      return res.status(400).json({ message: 'Invalid JSON payload' });
     }
     next();
   },
@@ -36,4 +38,3 @@ router.put('/admin/:id/status', authMiddleware, orderController.updateOrderStatu
 router.delete('/admin/delete/:id', authMiddleware, orderController.deleteOrder);
 
 module.exports = router;
-
