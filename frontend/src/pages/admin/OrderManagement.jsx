@@ -280,12 +280,7 @@ const styles = `
   transform: scale(1.05);
 }
 
-.whatsapp-btn:disabled {
-  background: #a8e6c1;
-  cursor: not-allowed;
-  opacity: 0.6;
-  transform: none;
-}
+
 
 .whatsapp-btn svg {
   width: 20px;
@@ -477,11 +472,7 @@ const OrderManagement = () => {
   const [deleteTarget, setDeleteTarget] = useState(null); // order to delete
   const [deleting, setDeleting] = useState(false);
 
-  const [whatsappSent, setWhatsappSent] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('whatsappSent') || '{}');
-    } catch { return {}; }
-  });
+  
 
   const fetchOrders = (status = filter, p = page) => {
     setLoading(true);
@@ -551,11 +542,7 @@ const OrderManagement = () => {
     const url = `https://wa.me/${phone}?text=${encodedMessage}`;
     window.open(url, '_blank');
 
-    setWhatsappSent(prev => {
-      const updated = { ...prev, [order.id]: true };
-      localStorage.setItem('whatsappSent', JSON.stringify(updated));
-      return updated;
-    });
+    
   };
 
   const downloadShippingSlip = (order) => {
@@ -704,8 +691,7 @@ const OrderManagement = () => {
                       <button
                         className="whatsapp-btn"
                         onClick={() => handleWhatsApp(order)}
-                        disabled={whatsappSent[order.id]}
-                        title={whatsappSent[order.id] ? 'Message already sent' : 'Send WhatsApp confirmation'}
+                        title="Send WhatsApp confirmation"
                       >
                         <WhatsAppIcon />
                       </button>
